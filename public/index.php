@@ -55,6 +55,16 @@
           <input type="number" id="crossfade" value="2" min="0" max="10" step="0.1">
           <span>sec</span>
         </div>
+
+        <div class="seek-row">
+          <span>Normalize</span>
+          <select id="loudnessMode">
+            <option value="off">Off</option>
+            <option value="rms" selected>RMS</option>
+            <option value="lufs">LUFS (approx)</option>
+          </select>
+          <span></span>
+        </div>
       </div>
 
       <div class="playlist-card">
@@ -205,6 +215,9 @@
             <option value="instagram">Instagram Portrait (1080x1350, 30fps)</option>
             <option value="tiktok">TikTok Portrait (1080x1920, 30fps)</option>
           </select>
+
+          <label>Normalize on export (LUFS -14)</label>
+          <input type="checkbox" id="exportLoudnorm">
         </div>
         <div class="export-buttons">
           <button id="startRecBtn">Start Recording</button>

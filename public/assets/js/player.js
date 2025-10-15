@@ -53,6 +53,7 @@
   const ffPresetEl = document.getElementById("ffPreset");
   const exportPresetEl = document.getElementById("exportPreset");
   const platformProfileEl = document.getElementById("platformProfile");
+  const exportLoudnormEl = document.getElementById("exportLoudnorm");
 
   let uploadToServer = false;
 
@@ -191,7 +192,7 @@
     masterGain.gain.value = Math.max(0, Math.min(1, v));
   }
 
-  async function analyzeLoudness(track) {
+  async function analyzeLoudnessRMS(track) {
     if (!audioCtx) ensureAudioContext();
     if (track.loudnessGain) return track.loudnessGain;
     try {
@@ -226,6 +227,60 @@
       return gain;
     } catch {
       track.loudnessGain = 1.0;
+      return 1.0;
+    }
+  }
+
+  async function analyzeLoudnessLUFS(track) {
+    if (!audioCtx) ensureAudioContext();
+    if (track.loudnessGainLufs) return track.loudnessGainLufs;
+    try {
+      let arrBuf = null;
+      if (track.file && track.file.arrayBuffer) {
+        arrBuf = await track.file.arrayBuffer();
+      } else if (track.url && !track.url.startsWith("blob:")) {
+        const res = await fetch(track.url, { mode: "cors" });
+        if (!res.ok) throw new Error("fetch failed");
+        arrBuf = await res.arrayBuffer();
+      }
+      if (!arrBuf) throw new Error("no data");
+      const buf = await audioCtx.decodeAudioData(arrBuf.slice(0));
+      const ch = Math.min(2, buf.numberOfChannels);
+      const sr = buf.sampleRate;
+      const total = Math.min(buf.length, sr * 30);
+      if (total <= 0) throw new Error("empty");
+
+      // K-weight approximation: simple highpass + highshelf
+      const hpCut = 60; // Hz
+      const shelfFreq = 4000; // Hz
+      const shelfGain = 3.0; // dB
+      const hpAlpha = Math.exp(-2 * Math.PI * hpCut / sr);
+
+      let sumSq = 0;
+      for (let c = 0; c < ch; c++) {
+        const data = buf.getChannelData(c);
+        let y1 = 0;
+        for (let i = 0; i < total; i += 3) {
+          let x = data[i];
+          // First-order HP
+          y1 = hpAlpha * y1 + hpAlpha * (x - (y1 || 0));
+          let y = y1;
+          // Simple high-shelf boost
+          const w = Math.sin(2 * Math.PI * shelfFreq / sr);
+          const g = Math.pow(10, shelfGain / 20);
+          y = y + (x - y) * w * (g - 1);
+          sumSq += y * y;
+        }
+      }
+      const n = Math.ceil(total / 3) * ch;
+      const rms = Math.sqrt(sumSq / Math.max(1, n));
+      const target = 0.10; // slightly lower target for K-weighted
+      let gain = target / Math.max(1e-5, rms);
+      gain = Math.max(0.5, Math.min(3.0, gain));
+      track.loudnessGainLufs = gain;
+      return gain;
+    } catch {
+      track.loudnessGainLufs = 1.0;
       return 1.0;
     }
   }
@@ -462,6 +517,9 @@
     frameRateEl.value = fr;
   });
 
+  // Loudness mode change
+  document.getElementById("loudnessMode")?.addEventListener("change", () => {});
+
   editTemplatesBtn.addEventListener("click", () => {
     if (window.TemplatesManager && typeof window.TemplatesManager.open === "function") {
       window.TemplatesManager.open();
@@ -591,12 +649,16 @@
     inactive.gain.gain.setValueAtTime(inactive.gain.gain.value, now);
     inactive.gain.gain.linearRampToValueAtTime(1.0, now + xfade);
 
-    // After start, adjust to loudness once analyzed
-    analyzeLoudness(t).then((g) => {
-      const tnow = audioCtx.currentTime;
-      inactive.gain.gain.cancelScheduledValues(tnow);
-      inactive.gain.gain.setTargetAtTime(g, tnow, 0.2);
-    }).catch(() => {});
+    // After start, adjust to loudness once analyzed based on mode
+    const mode = (document.getElementById("loudnessMode")?.value) || "rms";
+    const fn = mode === "lufs" ? analyzeLoudnessLUFS : (mode === "off" ? null : analyzeLoudnessRMS);
+    if (fn) {
+      fn(t).then((g) => {
+        const tnow = audioCtx.currentTime;
+        inactive.gain.gain.cancelScheduledValues(tnow);
+        inactive.gain.gain.setTargetAtTime(g, tnow, 0.25);
+      }).catch(() => {});
+    }
 
     const activeGainNode = activeId === "A" ? gainA : gainB;
     if (activeGainNode) {
@@ -676,6 +738,7 @@
       form.append("crf", parseInt(crfEl.value || "18", 10));
       form.append("abitrate", parseInt(audioBitrateEl.value || "192", 10));
       form.append("preset", ffPresetEl.value || "veryfast");
+      form.append("loudnorm", exportLoudnormEl.checked ? "1" : "");
 
       try {
         const res = await fetch("/api/export.php", { method: "POST", body: form });

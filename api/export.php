@@ -74,10 +74,12 @@ if ($convert === 'mp4' && hasFfmpeg()) {
   $allowedPresets = ['ultrafast','superfast','veryfast','faster','fast','medium','slow'];
   if (!in_array($preset, $allowedPresets, true)) $preset = 'veryfast';
 
+  $useLoudnorm = !empty($_POST['loudnorm']);
+
   // Transcode with H.264 + AAC using provided params
   $cmd = 'ffmpeg -y -i ' . escapeshellarg($webmPath)
     . ' -c:v libx264 -preset ' . escapeshellarg($preset) . ' -crf ' . escapeshellarg((string)$crf)
-    . ' -c:a aac -b:a ' . escapeshellarg($abArg) . ' '
+    . ' -c:a aac ' . ($useLoudnorm ? ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ' : ' ') . '-b:a ' . escapeshellarg($abArg) . ' '
     . escapeshellarg($mp4Path);
 
   $code = 1;
