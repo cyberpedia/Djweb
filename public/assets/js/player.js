@@ -24,6 +24,7 @@
   const eqPresetEl = document.getElementById("eqPreset");
 
   const vizCanvas = document.getElementById("vizCanvas");
+  const vizGuides = document.getElementById("vizGuides");
   const vizTemplateEl = document.getElementById("vizTemplate");
   const fgColorEl = document.getElementById("fgColor");
   const bgColorEl = document.getElementById("bgColor");
@@ -37,6 +38,8 @@
 
   const colorMapEl = document.getElementById("colorMap");
   const particleTrailsEl = document.getElementById("particleTrails");
+  const particleLinksEl = document.getElementById("particleLinks");
+  const safeGuidesEl = document.getElementById("safeGuides");
   const textOverlayTextEl = document.getElementById("textOverlayText");
   const textOverlaySizeEl = document.getElementById("textOverlaySize");
   const textOverlayPositionEl = document.getElementById("textOverlayPosition");
@@ -157,7 +160,9 @@
     logoSize: parseInt(logoSizeEl.value || "64", 10),
     logoPosition: logoPositionEl.value,
     colorMap: colorMapEl.value,
+    colorStops: [],
     particleTrails: particleTrailsEl.checked,
+    particleLinks: !!(particleLinksEl && particleLinksEl.checked),
     layers: [],
     textOverlay: {
       text: textOverlayTextEl.value,
@@ -452,9 +457,18 @@
         colorMapEl.value = payload.colorMap;
         vizOptions.colorMap = payload.colorMap;
       }
+      if (Array.isArray(payload.colorStops)) {
+        vizOptions.colorStops = payload.colorStops.slice();
+      } else {
+        vizOptions.colorStops = [];
+      }
       if (typeof payload.particleTrails === "boolean") {
         particleTrailsEl.checked = payload.particleTrails;
         vizOptions.particleTrails = payload.particleTrails;
+      }
+      if (typeof payload.particleLinks === "boolean" && particleLinksEl) {
+        particleLinksEl.checked = payload.particleLinks;
+        vizOptions.particleLinks = payload.particleLinks;
       }
       if (payload.textOverlay && typeof payload.textOverlay === "object") {
         if (typeof payload.textOverlay.text === "string") {
@@ -484,9 +498,57 @@
   vizModeEl.addEventListener("change", () => (vizOptions.mode = vizModeEl.value));
   colorMapEl.addEventListener("change", () => (vizOptions.colorMap = colorMapEl.value));
   particleTrailsEl.addEventListener("change", () => (vizOptions.particleTrails = particleTrailsEl.checked));
+  if (particleLinksEl) particleLinksEl.addEventListener("change", () => (vizOptions.particleLinks = particleLinksEl.checked));
+  if (safeGuidesEl) safeGuidesEl.addEventListener("change", () => {
+    if (!vizGuides) return;
+    vizGuides.style.display = safeGuidesEl.checked ? "block" : "none";
+    drawGuides();
+  });
   textOverlayTextEl.addEventListener("input", () => (vizOptions.textOverlay.text = textOverlayTextEl.value));
   textOverlaySizeEl.addEventListener("input", () => (vizOptions.textOverlay.size = parseInt(textOverlaySizeEl.value || "24", 10)));
   textOverlayPositionEl.addEventListener("change", () => (vizOptions.textOverlay.position = textOverlayPositionEl.value));
+
+  function updateGuidesCanvasSize() {
+    if (!vizGuides) return;
+    vizGuides.width = vizCanvas.width;
+    vizGuides.height = vizCanvas.height;
+  }
+
+  function drawGuides() {
+    if (!vizGuides) return;
+    const ctx = vizGuides.getContext("2d");
+    ctx.clearRect(0, 0, vizGuides.width, vizGuides.height);
+    if (!safeGuidesEl || !safeGuidesEl.checked) return;
+    const w = vizGuides.width, h = vizGuides.height;
+    // outer margins (10%)
+    const mx = Math.round(w * 0.1), my = Math.round(h * 0.1);
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.setLineDash([8, 8]);
+    ctx.strokeRect(mx, my, w - 2 * mx, h - 2 * my);
+
+    // platform-specific
+    const prof = platformProfileEl.value;
+    ctx.setLineDash([]);
+    if (prof === "instagram") {
+      // Center square within portrait canvas
+      const size = Math.min(w, h);
+      const sx = Math.round((w - size) / 2);
+      const sy = Math.round((h - size) / 2);
+      ctx.strokeStyle = "rgba(0,245,212,0.6)";
+      ctx.strokeRect(sx, sy, size, size);
+    } else if (prof === "tiktok") {
+      // Reserve top/bottom UI areas (~12% each)
+      const r = Math.round(h * 0.12);
+      ctx.strokeStyle = "rgba(91,141,239,0.6)";
+      ctx.beginPath();
+      ctx.moveTo(0, r); ctx.lineTo(w, r);
+      ctx.moveTo(0, h - r); ctx.lineTo(w, h - r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   resolutionEl.addEventListener("change", () => {
     const val = resolutionEl.value || "1280x720";
@@ -496,6 +558,8 @@
     if (Number.isFinite(w) && Number.isFinite(h)) {
       vizCanvas.width = w;
       vizCanvas.height = h;
+      updateGuidesCanvasSize();
+      drawGuides();
     }
   });
 
@@ -549,8 +613,10 @@
     if (Number.isFinite(w) && Number.isFinite(h)) {
       vizCanvas.width = w;
       vizCanvas.height = h;
+      updateGuidesCanvasSize();
     }
     frameRateEl.value = fr;
+    drawGuides();
   });
 
   // Loudness mode change
@@ -597,6 +663,17 @@
     requestAnimationFrame(updateTimeLoop);
   }
   requestAnimationFrame(updateTimeLoop);
+
+  // Initialize guides canvas sizing and visibility
+  (function initGuides() {
+    if (vizGuides) {
+      vizGuides.style.display = safeGuidesEl && safeGuidesEl.checked ? "block" : "none";
+      vizGuides.width = vizCanvas.width;
+      vizGuides.height = vizCanvas.height;
+      // Defer drawing slightly to allow layout
+      setTimeout(drawGuides, 0);
+    }
+  })();
 
   // Playlist handling
   function addToPlaylist(track) {

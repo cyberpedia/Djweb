@@ -24,9 +24,12 @@
   const tplLogoSizeEl = document.getElementById("tplLogoSize");
   const tplLogoPositionEl = document.getElementById("tplLogoPosition");
   const tplColorMapEl = document.getElementById("tplColorMap");
+  const tplColorStopsListEl = document.getElementById("tplColorStopsList");
+  const tplColorStopAddBtn = document.getElementById("tplColorStopAdd");
   const tplTextOverlayTextEl = document.getElementById("tplTextOverlayText");
   const tplTextOverlaySizeEl = document.getElementById("tplTextOverlaySize");
   const tplTextOverlayPositionEl = document.getElementById("tplTextOverlayPosition");
+  const tplParticleLinksEl = document.getElementById("tplParticleLinks");
 
   const vizTemplateEl = document.getElementById("vizTemplate");
 
@@ -82,6 +85,48 @@
     if (!tpl) return [];
     if (!Array.isArray(tpl.layers)) tpl.layers = [];
     return tpl.layers;
+  }
+
+  function getColorStops() {
+    const tpl = templates[selectedIdx];
+    if (!tpl) return [];
+    if (!Array.isArray(tpl.colorStops)) tpl.colorStops = [];
+    return tpl.colorStops;
+  }
+
+  function renderColorStops(stops) {
+    tplColorStopsListEl.innerHTML = "";
+    (stops || []).forEach((s, i) => {
+      const li = document.createElement("li");
+      const off = document.createElement("input");
+      off.type = "number"; off.min = "0"; off.max = "1"; off.step = "0.01";
+      off.value = (Number.isFinite(s.offset) ? s.offset : 0).toString();
+      const col = document.createElement("input");
+      col.type = "color";
+      const color = typeof s.color === "string" ? s.color : "#ffffff";
+      // normalize to #rrggbb
+      col.value = /^#/.test(color) ? color : "#ffffff";
+      const rem = document.createElement("button");
+      rem.textContent = "Remove";
+      rem.className = "secondary";
+      rem.addEventListener("click", () => {
+        const arr = getColorStops();
+        arr.splice(i, 1);
+        renderColorStops(arr);
+      });
+      off.addEventListener("input", () => {
+        const arr = getColorStops();
+        arr[i] = { offset: parseFloat(off.value || "0"), color: col.value };
+      });
+      col.addEventListener("input", () => {
+        const arr = getColorStops();
+        arr[i] = { offset: parseFloat(off.value || "0"), color: col.value };
+      });
+      li.appendChild(off);
+      li.appendChild(col);
+      li.appendChild(rem);
+      tplColorStopsListEl.appendChild(li);
+    });
   }
 
   function renderLayersList() {
@@ -206,6 +251,7 @@
     tplOverlayTitleEl.checked = !!tpl.overlayTitle;
     tplProgressArcEl.checked = !!tpl.progressArc;
     tplParticleTrailsEl.checked = !!tpl.particleTrails;
+    tplParticleLinksEl.checked = !!tpl.particleLinks;
     tplLogoUrlEl.value = tpl.logoUrl || "";
     tplLogoSizeEl.value = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
     tplLogoPositionEl.value = tpl.logoPosition || "top-left";
@@ -214,11 +260,25 @@
     tplTextOverlaySizeEl.value = Number.isFinite(to.size) ? to.size : 24;
     tplTextOverlayPositionEl.value = to.position || "bottom-left";
 
+    // Color stops
+    if (!Array.isArray(tpl.colorStops) || tpl.colorStops.length === 0) {
+      // Initialize default stops from FG/BG
+      tpl.colorStops = [
+        { offset: 0, color: tpl.bg || "#0B0F14" },
+        { offset: 1, color: tpl.fg || "#00F5D4" }
+      ];
+    }
+    renderColorStops(tpl.colorStops);
+
     selectedLayerIdx = -1;
     renderLayersList();
   }
 
   function readForm() {
+    const colorStops = getColorStops().slice().map(s => ({
+      offset: Math.max(0, Math.min(1, parseFloat(s.offset) || 0)),
+      color: typeof s.color === "string" ? s.color : "#ffffff"
+    })).sort((a, b) => a.offset - b.offset);
     return {
       name: tplNameEl.value.trim() || "Untitled",
       mode: tplModeEl.value,
@@ -226,9 +286,11 @@
       bg: tplBgEl.value,
       scale: parseFloat(tplScaleEl.value || "1.0"),
       colorMap: tplColorMapEl.value,
+      colorStops,
       overlayTitle: tplOverlayTitleEl.checked,
       progressArc: tplProgressArcEl.checked,
       particleTrails: tplParticleTrailsEl.checked,
+      particleLinks: tplParticleLinksEl.checked,
       logoUrl: tplLogoUrlEl.value.trim(),
       logoSize: parseInt(tplLogoSizeEl.value || "64", 10),
       logoPosition: tplLogoPositionEl.value,
@@ -289,6 +351,53 @@
   });
 
   tplSaveBtn.addEventListener("click", async () => {
+    if (selectedIdx < 0) return;
+    applyLayerForm();
+    templates[selectedIdx] = readForm();
+    await saveTemplatesToServer();
+  });
+
+  // Color stops controls
+  function ensureDefaultStops() {
+    const arr = getColorStops();
+    if (arr.length === 0) {
+      const fg = tplFgEl.value || "#00F5D4";
+      const bg = tplBgEl.value || "#0B0F14";
+      arr.push({ offset: 0, color: bg }, { offset: 1, color: fg });
+    }
+  }
+  tplColorStopAddBtn.addEventListener("click", () => {
+    const arr = getColorStops();
+    ensureDefaultStops();
+    arr.push({ offset: 0.5, color: "#ffffff" });
+    renderColorStops(arr);
+  });
+
+  tplColorMapEl.addEventListener("change", () => {
+    const wrap = document.querySelector(".colormap-stops");
+    if (wrap) wrap.style.display = tplColorMapEl.value === "custom" ? "grid" : "none";
+  });
+  // Initialize visibility based on current selection
+  (function initStopsVis() {
+    const wrap = document.querySelector(".colormap-stops");
+    if (wrap) wrap.style.display = tplColorMapEl.value === "custom" ? "grid" : "none";
+  })();
+
+  // Layers controls
+  layerAddTextBtn.addEventListener("click", () => addLayer("text"));
+  layerAddLogoBtn.addEventListener("click", () => addLayer("logo"));
+  layerAddProgressBtn.addEventListener("click", () => addLayer("progressArc"));
+  layerUpBtn.addEventListener("click", () => moveLayer(-1));
+  layerDownBtn.addEventListener("click", () => moveLayer(1));
+  layerRemoveBtn.addEventListener("click", () => removeLayer());
+
+  // Layer form live updates
+  layerTextEl.addEventListener("input", applyLayerForm);
+  layerSizeEl.addEventListener("input", applyLayerForm);
+  layerLogoUrlEl.addEventListener("input", applyLayerForm);
+  layerLogoSizeEl.addEventListener("input", applyLayerForm);
+  layerRadiusEl.addEventListener("input", applyLayerForm);
+  layerPositionEl.addEventListener("change", applyLayerForm);ddEventListener("change", applyLayerForm);addEventListener("click", async () => {
     if (selectedId << 0) return;
     applyLayerForm();
     templates[selectedIdx] = readForm();
@@ -366,6 +475,7 @@
         const overlayTitle = !!tpl.overlayTitle;
         const progressArc = !!tpl.progressArc;
         const particleTrails = !!tpl.particleTrails;
+        const particleLinks = !!tpl.particleLinks;
         const logoUrl = typeof tpl.logoUrl === "string" ? tpl.logoUrl : "";
         const logoSize = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
         const logoPosition = validPos.includes(tpl.logoPosition) ? tpl.logoPosition : "top-left";
@@ -391,7 +501,16 @@
             return null;
           }).filter(Boolean);
         }
-        return { name, mode, fg, bg, scale, colorMap, overlayTitle, progressArc, particleTrails, logoUrl, logoSize, logoPosition, textOverlay, layers };
+        // Color stops
+        let colorStops = [];
+        if (Array.isArray(tpl.colorStops)) {
+          colorStops = tpl.colorStops.map((s) => {
+            const offset = Math.max(0, Math.min(1, parseFloat(s.offset) || 0));
+            const color = typeof s.color === "string" ? s.color : "#ffffff";
+            return { offset, color };
+          }).sort((a, b) => a.offset - b.offset);
+        }
+        return { name, mode, fg, bg, scale, colorMap, colorStops, overlayTitle, progressArc, particleTrails, particleLinks, logoUrl, logoSize, logoPosition, textOverlay, layers };
       });
       selectedIdx = templates.length ? 0 : -1;
       renderList();

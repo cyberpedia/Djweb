@@ -81,9 +81,40 @@ function startVisualizerLoop(analyser, canvas, options) {
     ];
   }
 
-  function colorFromMap(t, fgRgb, bgRgb, name) {
+  function colormapFromStops(stops, t) {
+    if (!Array.isArray(stops) || stops.length === 0) return [255, 255, 255];
+    t = Math.max(0, Math.min(1, t));
+    // Ensure sorted
+    const arr = stops.map(s => ({ o: Math.max(0, Math.min(1, parseFloat(s.offset) || 0)), c: s.color || "#ffffff" }))
+      .sort((a, b) => a.o - b.o);
+    const rgb = (hex) => {
+      const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
+      if (!m) return [255, 255, 255];
+      const int = parseInt(m[1], 16);
+      return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+    };
+    if (t <= arr[0].o) return rgb(arr[0].c);
+    if (t >= arr[arr.length - 1].o) return rgb(arr[arr.length - 1].c);
+    let i = 0;
+    while (i < arr.length - 1 && t > arr[i + 1].o) i++;
+    const a = arr[i];
+    const b = arr[i + 1];
+    const span = Math.max(1e-6, b.o - a.o);
+    const lt = (t - a.o) / span;
+    const ra = rgb(a.c), rb = rgb(b.c);
+    return [
+      Math.round(ra[0] + (rb[0] - ra[0]) * lt),
+      Math.round(ra[1] + (rb[1] - ra[1]) * lt),
+      Math.round(ra[2] + (rb[2] - ra[2]) * lt)
+    ];
+  }
+
+  function colorFromMap(t, fgRgb, bgRgb, name, customStops) {
     if (name === "gradient" || !name) {
       return lerpColor(bgRgb, fgRgb, t);
+    }
+    if (name === "custom" && Array.isArray(customStops) && customStops.length > 0) {
+      return colormapFromStops(customStops, t);
     }
     return colormapSample(name, t);
   }
@@ -276,6 +307,33 @@ function startVisualizerLoop(analyser, canvas, options) {
           ctx.restore();
         }
       }
+      // Links between nearby particles
+      if (options.particleLinks) {
+        ctx.save();
+        ctx.lineWidth = 1;
+        const maxDist = Math.min(canvas.width, canvas.height) * 0.12;
+        for (let i = 0; i < particles.length; i += 2) {
+          const p = particles[i];
+          for (let j = i + 1; j < Math.min(particles.length, i + 8); j++) {
+            const q = particles[j];
+            const dx = p.x - q.x;
+            const dy = p.y - q.y;
+            const d = Math.hypot(dx, dy);
+            if (d < maxDist) {
+              const idx = Math.floor((i / particles.length) * bufferLength);
+              const energy = (freqData[idx] / 255);
+              const a = Math.max(0, 1 - d / maxDist) * (0.08 + energy * 0.12);
+              ctx.globalAlpha = a;
+              ctx.strokeStyle = "#5B8DEF";
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(q.x, q.y);
+              ctx.stroke();
+            }
+          }
+        }
+        ctx.restore();
+      }
     } else if (mode === "waterfall") {
       analyser.getByteFrequencyData(freqData);
       const w = canvas.width;
@@ -286,11 +344,12 @@ function startVisualizerLoop(analyser, canvas, options) {
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
       const mapName = options.colorMap || "gradient";
+      const customStops = options.colorStops || null;
       for (let i = 0; i < cols; i++) {
         const idx = i * step;
         const v = freqData[idx] / 255;
         const t = Math.pow(v * scale, 0.8) * (1 + pulse * 0.6);
-        const col = colorFromMap(Math.min(1, t), fgRgb, bgRgb, mapName);
+        const col = colorFromMap(Math.min(1, t), fgRgb, bgRgb, mapName, customStops);
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         const x = Math.floor((i / cols) * w);
         const nextX = Math.floor(((i + 1) / cols) * w);
@@ -305,12 +364,13 @@ function startVisualizerLoop(analyser, canvas, options) {
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
       const mapName = options.colorMap || "gradient";
+      const customStops = options.colorStops || null;
       for (let y = 0; y < h; y++) {
         const frac = 1 - y / h;
         const idx = Math.min(rows - 1, Math.floor(frac * rows));
         const v = (freqData[idx] / 255) * scale * (1 + pulse * 0.5);
         const t = Math.min(1, Math.pow(v, 0.85));
-        const col = colorFromMap(t, fgRgb, bgRgb, mapName);
+        const col = colorFromMap(t, fgRgb, bgRgb, mapName, customStops);
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         ctx.fillRect(w - 1, y, 1, 1);
       }
@@ -322,11 +382,13 @@ function startVisualizerLoop(analyser, canvas, options) {
       ctx.drawImage(canvas, 0, 1, w, h - 1, 0, 0, w, h - 1);
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
+      const mapName = options.colorMap || "gradient";
+      const customStops = options.colorStops || null;
       for (let x = 0; x < w; x++) {
         const idx = Math.floor((x / w) * (bufferLength - 1));
         const v = (timeData[idx] - 128) / 128;
         const t = Math.min(1, Math.abs(v) * scale * (1 + pulse * 0.3));
-        const col = lerpColor(bgRgb, fgRgb, t);
+        const col = colorFromMap(t, fgRgb, bgRgb, mapName, customStops);
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         ctx.fillRect(x, h - 1, 1, 1);
       }

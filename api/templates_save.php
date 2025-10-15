@@ -35,6 +35,7 @@ foreach ($data as $tpl) {
 
   $colorMap = isset($tpl['colorMap']) ? trim($tpl['colorMap']) : 'gradient';
   $particleTrails = !empty($tpl['particleTrails']);
+  $particleLinks = !empty($tpl['particleLinks']);
 
   $textOverlay = null;
   if (isset($tpl['textOverlay']) && is_array($tpl['textOverlay'])) {
@@ -43,6 +44,20 @@ foreach ($data as $tpl) {
     $size = isset($to['size']) ? intval($to['size']) : 24;
     $pos = isset($to['position']) ? trim($to['position']) : 'bottom-left';
     $textOverlay = ['text' => $text, 'size' => $size, 'position' => $pos];
+  }
+
+  // Color stops
+  $colorStops = [];
+  if (isset($tpl['colorStops']) && is_array($tpl['colorStops'])) {
+    foreach ($tpl['colorStops'] as $s) {
+      if (!is_array($s)) continue;
+      $offset = isset($s['offset']) ? floatval($s['offset']) : 0.0;
+      if ($offset < 0) $offset = 0.0; if ($offset > 1) $offset = 1.0;
+      $color = isset($s['color']) ? trim($s['color']) : '#ffffff';
+      if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#ffffff';
+      $colorStops[] = ['offset' => $offset, 'color' => $color];
+    }
+    usort($colorStops, function ($a, $b) { return $a['offset'] <=> $b['offset']; });
   }
 
   // Layers
@@ -75,9 +90,11 @@ foreach ($data as $tpl) {
     'bg' => $bg,
     'scale' => $scale,
     'colorMap' => $colorMap,
+    'colorStops' => $colorStops,
     'overlayTitle' => $overlayTitle,
     'progressArc' => $progressArc,
     'particleTrails' => $particleTrails,
+    'particleLinks' => $particleLinks,
     'logoUrl' => $logoUrl,
     'logoSize' => $logoSize,
     'logoPosition' => $logoPosition,

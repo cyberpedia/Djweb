@@ -178,11 +178,20 @@ button.secondary { opacity: 0.85; }
   background: #0f1620; color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
 }
 
+.viz-wrap { position: relative; }
 #vizCanvas {
   width: 100%; height: auto; display: block;
   background: #0b0f14;
   border-radius: 12px;
   border: 1px solid var(--border);
+}
+#vizGuides.guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none; /* toggled on by JS */
+  pointer-events: none;
 }
 
 .viz-controls, .export-controls, .export-buttons {
@@ -265,6 +274,17 @@ button.secondary { opacity: 0.85; }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
+}
+
+.colormap-stops { display: grid; gap: 8px; margin-top: 8px; }
+.colormap-stops .stops-actions { display: flex; gap: 8px; }
+#tplColorStopsList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+#tplColorStopsList li {
+  display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center;
+}
+#tplColorStopsList input[type="number"], #tplColorStopsList input[type="color"] {
+  background: #0f1620; color: var(--fg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px;
 }
 
 .layers-section {

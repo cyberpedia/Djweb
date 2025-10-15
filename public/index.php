@@ -95,7 +95,10 @@
     <section class="right-panel">
       <div class="viz-card">
         <div class="card-title">Visualizer</div>
-        <canvas id="vizCanvas" width="1280" height="720"></canvas>
+        <div class="viz-wrap">
+          <canvas id="vizCanvas" width="1280" height="720"></canvas>
+          <canvas id="vizGuides" class="guides" width="1280" height="720"></canvas>
+        </div>
 
         <div class="viz-controls">
           <label>Template</label>
@@ -167,10 +170,17 @@
             <option value="magma">Magma</option>
             <option value="viridis">Viridis</option>
             <option value="turbo">Turbo</option>
+            <option value="custom">Custom (by template)</option>
           </select>
 
           <label>Particle Trails</label>
           <input type="checkbox" id="particleTrails" checked>
+
+          <label>Particle Links</label>
+          <input type="checkbox" id="particleLinks">
+
+          <label>Safe Area Guides</label>
+          <input type="checkbox" id="safeGuides">
 
           <button id="editTemplatesBtn" class="secondary">Edit Templates</button>
         </div>
@@ -289,11 +299,21 @@
             <option value="magma">Magma</option>
             <option value="viridis">Viridis</option>
             <option value="turbo">Turbo</option>
+            <option value="custom">Custom</option>
           </select>
+
+          <div class="colormap-stops">
+            <div class="card-title">Color Stops (0–1)</div>
+            <div class="stops-actions">
+              <button id="tplColorStopAdd">Add Stop</button>
+            </div>
+            <ul id="tplColorStopsList"></ul>
+          </div>
 
           <label><input type="checkbox" id="tplOverlayTitle" checked> Show Title</label>
           <label><input type="checkbox" id="tplProgressArc" checked> Progress Arc</label>
           <label><input type="checkbox" id="tplParticleTrails" checked> Particle Trails</label>
+          <label><input type="checkbox" id="tplParticleLinks"> Particle Links</label>
 
           <label>Logo URL</label>
           <input type="text" id="tplLogoUrl" placeholder="/assets/logo.png">

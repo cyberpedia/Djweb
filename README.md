@@ -5,12 +5,12 @@ A lightweight web app that brings core AveePlayer Pro features to the browser wi
 - Audio playback with playlists
 - 10-band equalizer
 - Live visualizers (bars, radial, waveform, particles, waterfall, spectrogram, wavefall)
-- Beat-reactive animation (bars now include peak-hold)
+- Beat-reactive animation (bars now include peak-hold; particle trails and links)
 - Overlays: title, progress arc, logo (position/size), text overlay; multi-layer overlay system in Template Editor
 - Crossfade playback and gapless scheduling
 - Loudness normalization (RMS and LUFS-approx) with optional server-side loudnorm at export (Off, Single-pass, Two-pass)
-- Visualizer templates (JSON) + in-app Template Editor (GUI), import/export, share link
-- Resolution presets (720p/1080p/4K)
+- Visualizer templates (JSON) + in-app Template Editor (GUI), import/export, share link; custom colormaps (color stops)
+- Resolution presets (720p/1080p/4K) and platform profiles (YouTube/Instagram/TikTok) with optional safe area guides overlay (preview only)
 - Recording/exporting visualizer + audio to WebM (client-side) with optional server MP4 transcoding using FFmpeg
 - Export presets (High/Medium/Low) and manual CRF/bitrate/preset control
 
