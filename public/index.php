@@ -103,6 +103,7 @@
             <option value="waveform">Waveform</option>
             <option value="particles">Particles</option>
             <option value="waterfall">Waterfall</option>
+            <option value="spectrogram">Spectrogram</option>
           </select>
 
           <label>Resolution</label>
@@ -114,6 +115,23 @@
 
           <label>Show Title</label>
           <input type="checkbox" id="showTitle" checked>
+
+          <label>Progress Arc</label>
+          <input type="checkbox" id="progressArc" checked>
+
+          <label>Logo URL</label>
+          <input type="text" id="logoUrl" placeholder="/assets/logo.png">
+
+          <label>Logo Size</label>
+          <input type="number" id="logoSize" value="64" min="16" max="512">
+
+          <label>Logo Position</label>
+          <select id="logoPosition">
+            <option value="top-left">Top-left</option>
+            <option value="top-right">Top-right</option>
+            <option value="bottom-left">Bottom-left</option>
+            <option value="bottom-right">Bottom-right</option>
+          </select>
 
           <button id="editTemplatesBtn" class="secondary">Edit Templates</button>
         </div>
@@ -147,6 +165,13 @@
             <option value="medium">medium</option>
             <option value="slow">slow</option>
           </select>
+
+          <label>Export preset</label>
+          <select id="exportPreset">
+            <option value="high">High (CRF 16, 256 kbps, fast)</option>
+            <option value="medium" selected>Medium (CRF 20, 192 kbps, veryfast)</option>
+            <option value="low">Low (CRF 28, 128 kbps, superfast)</option>
+          </select>
         </div>
         <div class="export-buttons">
           <button id="startRecBtn">Start Recording</button>
@@ -172,6 +197,7 @@
             <button id="tplNewBtn">New</button>
             <button id="tplDeleteBtn" class="secondary">Delete</button>
             <button id="tplExportBtn" class="secondary">Export JSON</button>
+            <button id="tplShareBtn" class="secondary">Share Link</button>
             <label class="file-btn">
               <input type="file" id="tplImportInput" accept="application/json">
               Import JSON
@@ -199,6 +225,23 @@
 
           <label>Scale</label>
           <input type="number" id="tplScale" value="1.0" step="0.1" min="0.1" max="5">
+
+          <label><input type="checkbox" id="tplOverlayTitle" checked> Show Title</label>
+          <label><input type="checkbox" id="tplProgressArc" checked> Progress Arc</label>
+
+          <label>Logo URL</label>
+          <input type="text" id="tplLogoUrl" placeholder="/assets/logo.png">
+
+          <label>Logo Size</label>
+          <input type="number" id="tplLogoSize" value="64" min="16" max="512">
+
+          <label>Logo Position</label>
+          <select id="tplLogoPosition">
+            <option value="top-left">Top-left</option>
+            <option value="top-right">Top-right</option>
+            <option value="bottom-left">Bottom-left</option>
+            <option value="bottom-right">Bottom-right</option>
+          </select>
         </div>
       </div>
       <div class="footer">

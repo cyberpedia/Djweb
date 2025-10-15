@@ -41,6 +41,16 @@ function startVisualizerLoop(analyser, canvas, options) {
     r: 1 + Math.random() * 2
   }));
 
+  // Spectrogram state
+  const specTmp = document.createElement("canvas");
+  specTmp.width = canvas.width;
+  specTmp.height = canvas.height;
+  const specCtx = specTmp.getContext("2d");
+
+  // Overlay logo cache
+  let lastLogoUrl = "";
+  let logoImg = null;
+
   function detectBeat() {
     analyser.getByteFrequencyData(freqData);
     let lowEnergy = 0;
@@ -168,27 +178,42 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.fill();
       }
     } else if (mode === "waterfall") {
-      // Spectrogram waterfall: scroll up and draw a new frequency slice at bottom
       analyser.getByteFrequencyData(freqData);
       const w = canvas.width;
       const h = canvas.height;
-      // Scroll previous content up by 1px
       ctx.drawImage(canvas, 0, 1, w, h - 1, 0, 0, w, h - 1);
-      // Map frequency bins to columns
       const cols = Math.min(384, Math.floor(w / 2));
       const step = Math.floor(bufferLength / cols);
-      // Parse colors for gradient mapping
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
       for (let i = 0; i < cols; i++) {
         const idx = i * step;
         const v = freqData[idx] / 255;
-        const t = Math.pow(v * scale, 0.8) * (1 + pulse * 0.6); // gamma + beat boost
+        const t = Math.pow(v * scale, 0.8) * (1 + pulse * 0.6);
         const col = lerpColor(bgRgb, fgRgb, Math.min(1, t));
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         const x = Math.floor((i / cols) * w);
         const nextX = Math.floor(((i + 1) / cols) * w);
         ctx.fillRect(x, h - 1, Math.max(1, nextX - x), 1);
+      }
+    } else if (mode === "spectrogram") {
+      analyser.getByteFrequencyData(freqData);
+      const w = canvas.width;
+      const h = canvas.height;
+      // shift left by 1px
+      ctx.drawImage(canvas, 1, 0, w - 1, h, 0, 0, w - 1, h);
+      // draw new column at right
+      const rows = bufferLength;
+      const fgRgb = hexToRgb(fg);
+      const bgRgb = hexToRgb(bg);
+      for (let y = 0; y < h; y++) {
+        const frac = 1 - y / h; // high freq at top
+        const idx = Math.min(rows - 1, Math.floor(frac * rows));
+        const v = (freqData[idx] / 255) * scale * (1 + pulse * 0.5);
+        const t = Math.min(1, Math.pow(v, 0.85));
+        const col = lerpColor(bgRgb, fgRgb, t);
+        ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+        ctx.fillRect(w - 1, y, 1, 1);
       }
     }
 
@@ -206,9 +231,7 @@ function startVisualizerLoop(analyser, canvas, options) {
         const boxH = txtSize + pad * 2;
         const x = pad;
         const y = canvas.height - pad;
-        // box
         ctx.fillRect(x - 4, y - boxH, boxW + 8, boxH);
-        // text
         const gradText = ctx.createLinearGradient(x, y - boxH, x + boxW, y);
         gradText.addColorStop(0, fg);
         gradText.addColorStop(1, "#5B8DEF");
@@ -216,6 +239,55 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.fillText(title, x + pad, y - pad);
         ctx.restore();
       }
+    }
+
+    // Progress arc overlay
+    if (options.progressArc && typeof options.getProgress === "function") {
+      const info = options.getProgress();
+      const prog = info && Number.isFinite(info.progress) ? info.progress : 0;
+      const cx = canvas.width - 40;
+      const cy = 40;
+      const r = 26;
+      ctx.save();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+      grad.addColorStop(0, fg);
+      grad.addColorStop(1, "#5B8DEF");
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, prog)));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Logo overlay
+    const logoUrl = options.logoUrl || "";
+    if (logoUrl !== lastLogoUrl) {
+      lastLogoUrl = logoUrl;
+      logoImg = null;
+      if (logoUrl) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { logoImg = img; };
+        img.onerror = () => { logoImg = null; };
+        img.src = logoUrl;
+      }
+    }
+    if (logoImg) {
+      const size = Math.max(16, Math.min(512, parseInt(options.logoSize || 64, 10)));
+      const pos = options.logoPosition || "top-left";
+      let x = 16, y = 16;
+      if (pos === "top-right") { x = canvas.width - size - 16; y = 16; }
+      else if (pos === "bottom-left") { x = 16; y = canvas.height - size - 16; }
+      else if (pos === "bottom-right") { x = canvas.width - size - 16; y = canvas.height - size - 16; }
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.drawImage(logoImg, x, y, size, size);
+      ctx.restore();
     }
   }
   draw();

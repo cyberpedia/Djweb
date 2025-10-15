@@ -13,7 +13,15 @@
   const tplDeleteBtn = document.getElementById("tplDeleteBtn");
   const tplSaveBtn = document.getElementById("tplSaveBtn");
   const tplExportBtn = document.getElementById("tplExportBtn");
+  const tplShareBtn = document.getElementById("tplShareBtn");
   const tplImportInput = document.getElementById("tplImportInput");
+
+  // Overlay controls
+  const tplOverlayTitleEl = document.getElementById("tplOverlayTitle");
+  const tplProgressArcEl = document.getElementById("tplProgressArc");
+  const tplLogoUrlEl = document.getElementById("tplLogoUrl");
+  const tplLogoSizeEl = document.getElementById("tplLogoSize");
+  const tplLogoPositionEl = document.getElementById("tplLogoPosition");
 
   const vizTemplateEl = document.getElementById("vizTemplate");
 
@@ -56,6 +64,12 @@
     tplFgEl.value = tpl.fg || "#00F5D4";
     tplBgEl.value = tpl.bg || "#0B0F14";
     tplScaleEl.value = Number.isFinite(tpl.scale) ? tpl.scale : 1.0;
+
+    tplOverlayTitleEl.checked = !!tpl.overlayTitle;
+    tplProgressArcEl.checked = !!tpl.progressArc;
+    tplLogoUrlEl.value = tpl.logoUrl || "";
+    tplLogoSizeEl.value = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
+    tplLogoPositionEl.value = tpl.logoPosition || "top-left";
   }
 
   function readForm() {
@@ -64,7 +78,12 @@
       mode: tplModeEl.value,
       fg: tplFgEl.value,
       bg: tplBgEl.value,
-      scale: parseFloat(tplScaleEl.value || "1.0")
+      scale: parseFloat(tplScaleEl.value || "1.0"),
+      overlayTitle: tplOverlayTitleEl.checked,
+      progressArc: tplProgressArcEl.checked,
+      logoUrl: tplLogoUrlEl.value.trim(),
+      logoSize: parseInt(tplLogoSizeEl.value || "64", 10),
+      logoPosition: tplLogoPositionEl.value
     };
   }
 
@@ -138,6 +157,26 @@
     }
   });
 
+  tplShareBtn.addEventListener("click", async () => {
+    tplStatusEl.textContent = "Sharing…";
+    try {
+      const res = await fetch("/api/templates_share.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templates)
+      });
+      const data = await res.json();
+      if (data?.success && data?.url) {
+        const link = location.origin + data.url;
+        tplStatusEl.innerHTML = `Shared: <a href="${data.url}" target="_blank">${link}</a>`;
+      } else {
+        tplStatusEl.textContent = "Share failed.";
+      }
+    } catch {
+      tplStatusEl.textContent = "Share failed.";
+    }
+  });
+
   tplImportInput.addEventListener("change", async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
@@ -145,22 +184,26 @@
       const text = await f.text();
       const arr = JSON.parse(text);
       if (!Array.isArray(arr)) throw new Error("Invalid JSON");
-      // Basic validation and sanitize
-      const allowedModes = ["bars","radial","waveform","particles","waterfall"];
+      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram"];
+      const validPos = ["top-left","top-right","bottom-left","bottom-right"];
       templates = arr.map((tpl) => {
         const name = typeof tpl.name === "string" ? tpl.name : "Untitled";
         const mode = allowedModes.includes(tpl.mode) ? tpl.mode : "bars";
         const fg = typeof tpl.fg === "string" ? tpl.fg : "#00F5D4";
         const bg = typeof tpl.bg === "string" ? tpl.bg : "#0B0F14";
         const scale = Number.isFinite(tpl.scale) ? tpl.scale : 1.0;
-        return { name, mode, fg, bg, scale };
+        const overlayTitle = !!tpl.overlayTitle;
+        const progressArc = !!tpl.progressArc;
+        const logoUrl = typeof tpl.logoUrl === "string" ? tpl.logoUrl : "";
+        const logoSize = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
+        const logoPosition = validPos.includes(tpl.logoPosition) ? tpl.logoPosition : "top-left";
+        return { name, mode, fg, bg, scale, overlayTitle, progressArc, logoUrl, logoSize, logoPosition };
       });
       selectedIdx = templates.length ? 0 : -1;
       renderList();
       if (templates.length) selectIndex(0);
       await saveTemplatesToServer();
       tplStatusEl.textContent = "Imported.";
-      // reset input
       e.target.value = "";
     } catch {
       tplStatusEl.textContent = "Import failed.";

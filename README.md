@@ -4,10 +4,14 @@ Overview
 A lightweight web app that brings core AveePlayer Pro features to the browser with a PHP backend and a modern JavaScript front-end. It supports:
 - Audio playback with playlists
 - 10-band equalizer
-- Live visualizers (bars, radial, waveform, particles)
-- Visualizer templates (JSON) + in-app Template Editor (GUI)
-- Resolution presets (720p/1080p/4K) and optional title overlay
+- Live visualizers (bars, radial, waveform, particles, waterfall, spectrogram)
+- Beat-reactive animation
+- Overlays: title, progress arc, logo (position/size)
+- Crossfade playback
+- Visualizer templates (JSON) + in-app Template Editor (GUI), import/export, share link
+- Resolution presets (720p/1080p/4K)
 - Recording/exporting visualizer + audio to WebM (client-side) with optional server MP4 transcoding using FFmpeg
+- Export presets (High/Medium/Low) and manual CRF/bitrate/preset control
 
 Stack
 - PHP 8+ (no framework required)
@@ -23,14 +27,16 @@ Project Structure
   - assets/js/visualizer.js
   - assets/js/templates.js
 - api/
-  - upload.php          Audio file uploads
-  - export.php          Receive WebM and optionally convert to MP4
-  - templates.php       Serve visualizer templates
-  - templates_save.php  Save visualizer templates (JSON)
+  - upload.php            Audio file uploads
+  - export.php            Receive WebM and optionally convert to MP4
+  - templates.php         Serve visualizer templates
+  - templates_save.php    Save visualizer templates (JSON)
+  - templates_share.php   Share templates (JSON) and retrieve by id
 - storage/
-  - audio/              Uploaded audio files
-  - exports/            Exported videos
+  - audio/                Uploaded audio files
+  - exports/              Exported videos
   - templates/templates.json
+  - shares/               Shared templates JSON by id
 
 Getting Started
 1) Requirements

@@ -16,7 +16,7 @@ if (!is_array($data)) {
   exit;
 }
 
-$allowedModes = ['bars','radial','waveform','particles'];
+$allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram'];
 $sanitized = [];
 foreach ($data as $tpl) {
   if (!is_array($tpl)) continue;
@@ -25,7 +25,15 @@ foreach ($data as $tpl) {
   $fg = isset($tpl['fg']) ? trim($tpl['fg']) : '#00F5D4';
   $bg = isset($tpl['bg']) ? trim($tpl['bg']) : '#0B0F14';
   $scale = isset($tpl['scale']) ? floatval($tpl['scale']) : 1.0;
-  $sanitized[] = compact('name','mode','fg','bg','scale');
+
+  $overlayTitle = !empty($tpl['overlayTitle']);
+  $progressArc = !empty($tpl['progressArc']);
+  $logoUrl = isset($tpl['logoUrl']) ? trim($tpl['logoUrl']) : '';
+  $logoSize = isset($tpl['logoSize']) ? intval($tpl['logoSize']) : 64;
+  $validPos = ['top-left','top-right','bottom-left','bottom-right'];
+  $logoPosition = in_array($tpl['logoPosition'] ?? 'top-left', $validPos, true) ? $tpl['logoPosition'] : 'top-left';
+
+  $sanitized[] = compact('name','mode','fg','bg','scale','overlayTitle','progressArc','logoUrl','logoSize','logoPosition');
 }
 
 $root = dirname(__DIR__);

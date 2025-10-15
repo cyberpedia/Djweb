@@ -29,6 +29,10 @@
   const vizModeEl = document.getElementById("vizMode");
   const resolutionEl = document.getElementById("resolution");
   const showTitleEl = document.getElementById("showTitle");
+  const progressArcEl = document.getElementById("progressArc");
+  const logoUrlEl = document.getElementById("logoUrl");
+  const logoSizeEl = document.getElementById("logoSize");
+  const logoPositionEl = document.getElementById("logoPosition");
   const editTemplatesBtn = document.getElementById("editTemplatesBtn");
 
   const startRecBtn = document.getElementById("startRecBtn");
@@ -40,6 +44,7 @@
   const crfEl = document.getElementById("crf");
   const audioBitrateEl = document.getElementById("audioBitrate");
   const ffPresetEl = document.getElementById("ffPreset");
+  const exportPresetEl = document.getElementById("exportPreset");
 
   let uploadToServer = false;
 
@@ -70,6 +75,32 @@
       fgColorEl.value = payload.fg || fgColorEl.value;
       bgColorEl.value = payload.bg || bgColorEl.value;
       vizModeEl.value = payload.mode || vizModeEl.value;
+
+      vizOptions.fg = fgColorEl.value;
+      vizOptions.bg = bgColorEl.value;
+      vizOptions.mode = vizModeEl.value;
+      vizOptions.scale = payload.scale || vizOptions.scale;
+
+      if (typeof payload.overlayTitle === "boolean") {
+        showTitleEl.checked = payload.overlayTitle;
+        vizOptions.overlayTitle = payload.overlayTitle;
+      }
+      if (typeof payload.progressArc === "boolean") {
+        progressArcEl.checked = payload.progressArc;
+        vizOptions.progressArc = payload.progressArc;
+      }
+      if (typeof payload.logoUrl === "string") {
+        logoUrlEl.value = payload.logoUrl;
+        vizOptions.logoUrl = payload.logoUrl;
+      }
+      if (typeof payload.logoSize === "number") {
+        logoSizeEl.value = payload.logoSize;
+        vizOptions.logoSize = payload.logoSize;
+      }
+      if (typeof payload.logoPosition === "string") {
+        logoPositionEl.value = payload.logoPosition;
+        vizOptions.logoPosition = payload.logoPosition;
+      }
     }
   });
 
@@ -80,7 +111,18 @@
     mode: vizModeEl.value,
     scale: 1.0,
     overlayTitle: showTitleEl.checked,
-    getTrackTitle: () => trackTitleEl.textContent
+    progressArc: progressArcEl.checked,
+    logoUrl: logoUrlEl.value,
+    logoSize: parseInt(logoSizeEl.value || "64", 10),
+    logoPosition: logoPositionEl.value,
+    getTrackTitle: () => trackTitleEl.textContent,
+    getProgress: () => {
+      const el = activeEl;
+      const duration = el && el.duration && !Number.isNaN(el.duration) ? el.duration : 0;
+      const current = el ? el.currentTime : 0;
+      const progress = duration > 0 ? current / duration : 0;
+      return { current, duration, progress };
+    }
   };
 
   function ensureAudioContext() {
@@ -130,6 +172,45 @@
     if (!masterGain) return;
     const v = parseFloat(volumeEl.value || "1");
     masterGain.gain.value = Math.max(0, Math.min(1, v));
+  }
+
+  async function analyzeLoudness(track) {
+    if (!audioCtx) ensureAudioContext();
+    if (track.loudnessGain) return track.loudnessGain;
+    try {
+      let arrBuf = null;
+      if (track.file && track.file.arrayBuffer) {
+        arrBuf = await track.file.arrayBuffer();
+      } else if (track.url && !track.url.startsWith("blob:")) {
+        const res = await fetch(track.url, { mode: "cors" });
+        if (!res.ok) throw new Error("fetch failed");
+        arrBuf = await res.arrayBuffer();
+      }
+      if (!arrBuf) throw new Error("no data");
+      const audioBuf = await audioCtx.decodeAudioData(arrBuf.slice(0));
+      const ch = Math.min(2, audioBuf.numberOfChannels);
+      const sr = audioBuf.sampleRate;
+      const total = Math.min(audioBuf.length, sr * 30);
+      if (total <= 0) throw new Error("empty");
+      let sumSq = 0;
+      for (let c = 0; c < ch; c++) {
+        const data = audioBuf.getChannelData(c);
+        for (let i = 0; i < total; i += 4) {
+          const v = data[i];
+          sumSq += v * v;
+        }
+      }
+      const n = Math.ceil(total / 4) * ch;
+      const rms = Math.sqrt(sumSq / Math.max(1, n));
+      const target = 0.12;
+      let gain = target / Math.max(1e-5, rms);
+      gain = Math.max(0.5, Math.min(3.0, gain));
+      track.loudnessGain = gain;
+      return gain;
+    } catch {
+      track.loudnessGain = 1.0;
+      return 1.0;
+    }
   }
 
   // Controls wiring
@@ -192,7 +273,8 @@
         id: crypto.randomUUID(),
         name: file.name,
         url,
-        uploaded
+        uploaded,
+        file: uploaded ? null : file
       });
     }
     if (currentIndex === -1 && playlist.length) playIndex(0);
@@ -237,10 +319,32 @@
       if (payload.fg) fgColorEl.value = payload.fg;
       if (payload.bg) bgColorEl.value = payload.bg;
       if (payload.mode) vizModeEl.value = payload.mode;
+
       vizOptions.fg = fgColorEl.value;
       vizOptions.bg = bgColorEl.value;
       vizOptions.mode = vizModeEl.value;
       vizOptions.scale = payload.scale || 1.0;
+
+      if (typeof payload.overlayTitle === "boolean") {
+        showTitleEl.checked = payload.overlayTitle;
+        vizOptions.overlayTitle = payload.overlayTitle;
+      }
+      if (typeof payload.progressArc === "boolean") {
+        progressArcEl.checked = payload.progressArc;
+        vizOptions.progressArc = payload.progressArc;
+      }
+      if (typeof payload.logoUrl === "string") {
+        logoUrlEl.value = payload.logoUrl;
+        vizOptions.logoUrl = payload.logoUrl;
+      }
+      if (typeof payload.logoSize === "number") {
+        logoSizeEl.value = payload.logoSize;
+        vizOptions.logoSize = payload.logoSize;
+      }
+      if (typeof payload.logoPosition === "string") {
+        logoPositionEl.value = payload.logoPosition;
+        vizOptions.logoPosition = payload.logoPosition;
+      }
     } catch {}
   });
   fgColorEl.addEventListener("input", () => (vizOptions.fg = fgColorEl.value));
@@ -260,6 +364,35 @@
 
   showTitleEl.addEventListener("change", () => {
     vizOptions.overlayTitle = showTitleEl.checked;
+  });
+  progressArcEl.addEventListener("change", () => {
+    vizOptions.progressArc = progressArcEl.checked;
+  });
+  logoUrlEl.addEventListener("input", () => {
+    vizOptions.logoUrl = logoUrlEl.value.trim();
+  });
+  logoSizeEl.addEventListener("input", () => {
+    vizOptions.logoSize = parseInt(logoSizeEl.value || "64", 10);
+  });
+  logoPositionEl.addEventListener("change", () => {
+    vizOptions.logoPosition = logoPositionEl.value;
+  });
+
+  exportPresetEl.addEventListener("change", () => {
+    const p = exportPresetEl.value;
+    if (p === "high") {
+      crfEl.value = 16;
+      audioBitrateEl.value = 256;
+      ffPresetEl.value = "fast";
+    } else if (p === "low") {
+      crfEl.value = 28;
+      audioBitrateEl.value = 128;
+      ffPresetEl.value = "superfast";
+    } else {
+      crfEl.value = 20;
+      audioBitrateEl.value = 192;
+      ffPresetEl.value = "veryfast";
+    }
   });
 
   editTemplatesBtn.addEventListener("click", () => {
@@ -376,6 +509,13 @@
     inactive.gain.gain.cancelScheduledValues(now);
     inactive.gain.gain.setValueAtTime(inactive.gain.gain.value, now);
     inactive.gain.gain.linearRampToValueAtTime(1.0, now + xfade);
+
+    // After start, adjust to loudness once analyzed
+    analyzeLoudness(t).then((g) => {
+      const tnow = audioCtx.currentTime;
+      inactive.gain.gain.cancelScheduledValues(tnow);
+      inactive.gain.gain.setTargetAtTime(g, tnow, 0.2);
+    }).catch(() => {});
 
     const activeGainNode = activeId === "A" ? gainA : gainB;
     if (activeGainNode) {

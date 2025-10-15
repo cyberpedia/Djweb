@@ -188,7 +188,13 @@ button.secondary { opacity: 0.85; }
 .viz-controls, .export-controls, .export-buttons {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px;
 }
-.viz-controls select, .export-controls input[type=number], .export-controls input[type=checkbox], #vizTemplate {
+.viz-controls select,
+.viz-controls input[type=number],
+.viz-controls input[type=text],
+.viz-controls input[type=checkbox],
+.export-controls input[type=number],
+.export-controls input[type=checkbox],
+#vizTemplate {
   background: #0f1620; color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
 }
 
