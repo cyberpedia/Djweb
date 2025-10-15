@@ -33,7 +33,33 @@ foreach ($data as $tpl) {
   $validPos = ['top-left','top-right','bottom-left','bottom-right'];
   $logoPosition = in_array($tpl['logoPosition'] ?? 'top-left', $validPos, true) ? $tpl['logoPosition'] : 'top-left';
 
-  $sanitized[] = compact('name','mode','fg','bg','scale','overlayTitle','progressArc','logoUrl','logoSize','logoPosition');
+  $colorMap = isset($tpl['colorMap']) ? trim($tpl['colorMap']) : 'gradient';
+  $particleTrails = !empty($tpl['particleTrails']);
+
+  $textOverlay = null;
+  if (isset($tpl['textOverlay']) && is_array($tpl['textOverlay'])) {
+    $to = $tpl['textOverlay'];
+    $text = isset($to['text']) ? trim($to['text']) : '';
+    $size = isset($to['size']) ? intval($to['size']) : 24;
+    $pos = isset($to['position']) ? trim($to['position']) : 'bottom-left';
+    $textOverlay = ['text' => $text, 'size' => $size, 'position' => $pos];
+  }
+
+  $sanitized[] = [
+    'name' => $name,
+    'mode' => $mode,
+    'fg' => $fg,
+    'bg' => $bg,
+    'scale' => $scale,
+    'colorMap' => $colorMap,
+    'overlayTitle' => $overlayTitle,
+    'progressArc' => $progressArc,
+    'particleTrails' => $particleTrails,
+    'logoUrl' => $logoUrl,
+    'logoSize' => $logoSize,
+    'logoPosition' => $logoPosition,
+    'textOverlay' => $textOverlay
+  ];
 }
 
 $root = dirname(__DIR__);

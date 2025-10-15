@@ -25,7 +25,68 @@ function startVisualizerLoop(analyser, canvas, options) {
     return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
   }
   function lerpColor(a, b, t) {
-    t = Math.max(0, Math.min(1);
+    t = Math.max(0, Math.min(1, t));
+    return [
+      Math.round(a[0] + (b[0] - a[0]) * t),
+      Math.round(a[1] + (b[1] - a[1]) * t),
+      Math.round(a[2] + (b[2] - a[2]) * t)
+    ];
+  }
+
+  function colormapSample(name, t) {
+    // Clamp
+    t = Math.max(0, Math.min(1, t));
+    // Predefined stops for colormaps (approximate)
+    const stops = {
+      inferno: [
+        [0.0, 0, 0, 4],
+        [0.25, 31, 8, 70],
+        [0.5, 118, 35, 112],
+        [0.75, 196, 69, 58],
+        [1.0, 252, 255, 164]
+      ],
+      magma: [
+        [0.0, 0, 0, 3],
+        [0.25, 28, 16, 68],
+        [0.5, 109, 41, 110],
+        [0.75, 187, 86, 62],
+        [1.0, 252, 253, 191]
+      ],
+      viridis: [
+        [0.0, 68, 1, 84],
+        [0.25, 58, 82, 139],
+        [0.5, 33, 145, 140],
+        [0.75, 94, 201, 97],
+        [1.0, 253, 231, 37]
+      ],
+      turbo: [
+        [0.0, 34, 9, 255],
+        [0.25, 56, 255, 236],
+        [0.5, 255, 236, 56],
+        [0.75, 255, 111, 0],
+        [1.0, 125, 0, 0]
+      ]
+    };
+    const map = stops[name] || stops.inferno;
+    let i = 0;
+    while (i < map.length - 1 && t > map[i + 1][0]) i++;
+    const a = map[i];
+    const b = map[Math.min(i + 1, map.length - 1)];
+    const span = Math.max(1e-6, b[0] - a[0]);
+    const lt = (t - a[0]) / span;
+    return [
+      Math.round(a[1] + (b[1] - a[1]) * lt),
+      Math.round(a[2] + (b[2] - a[2]) * lt),
+      Math.round(a[3] + (b[3] - a[3]) * lt)
+    ];
+  }
+
+  function colorFromMap(t, fgRgb, bgRgb, name) {
+    if (name === "gradient" || !name) {
+      return lerpColor(bgRgb, fgRgb, t);
+    }
+    return colormapSample(name, t);
+  }
 
   // Simple beat detection on low-band energy
   let pulse = 0;
@@ -160,6 +221,7 @@ function startVisualizerLoop(analyser, canvas, options) {
         const p = particles[i];
         const idx = Math.floor((i / particles.length) * bufferLength);
         const energy = (freqData[idx] / 255);
+        const prevX = p.x, prevY = p.y;
         p.vx += (Math.random() - 0.5) * 0.02;
         p.vy += (Math.random() - 0.5) * 0.02;
         p.x += p.vx * (0.8 + energy * 1.2) * boost;
@@ -176,6 +238,18 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
+
+        if (options.particleTrails) {
+          ctx.save();
+          ctx.globalAlpha = 0.08 + energy * 0.1;
+          ctx.strokeStyle = "#5B8DEF";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     } else if (mode === "waterfall") {
       analyser.getByteFrequencyData(freqData);
@@ -186,11 +260,12 @@ function startVisualizerLoop(analyser, canvas, options) {
       const step = Math.floor(bufferLength / cols);
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
+      const mapName = options.colorMap || "gradient";
       for (let i = 0; i < cols; i++) {
         const idx = i * step;
         const v = freqData[idx] / 255;
         const t = Math.pow(v * scale, 0.8) * (1 + pulse * 0.6);
-        const col = lerpColor(bgRgb, fgRgb, Math.min(1, t));
+        const col = colorFromMap(Math.min(1, t), fgRgb, bgRgb, mapName);
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         const x = Math.floor((i / cols) * w);
         const nextX = Math.floor(((i + 1) / cols) * w);
@@ -200,18 +275,17 @@ function startVisualizerLoop(analyser, canvas, options) {
       analyser.getByteFrequencyData(freqData);
       const w = canvas.width;
       const h = canvas.height;
-      // shift left by 1px
       ctx.drawImage(canvas, 1, 0, w - 1, h, 0, 0, w - 1, h);
-      // draw new column at right
       const rows = bufferLength;
       const fgRgb = hexToRgb(fg);
       const bgRgb = hexToRgb(bg);
+      const mapName = options.colorMap || "gradient";
       for (let y = 0; y < h; y++) {
-        const frac = 1 - y / h; // high freq at top
+        const frac = 1 - y / h;
         const idx = Math.min(rows - 1, Math.floor(frac * rows));
         const v = (freqData[idx] / 255) * scale * (1 + pulse * 0.5);
         const t = Math.min(1, Math.pow(v, 0.85));
-        const col = lerpColor(bgRgb, fgRgb, t);
+        const col = colorFromMap(t, fgRgb, bgRgb, mapName);
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         ctx.fillRect(w - 1, y, 1, 1);
       }
@@ -239,6 +313,27 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.fillText(title, x + pad, y - pad);
         ctx.restore();
       }
+    }
+
+    // Additional text overlay
+    if (options.textOverlay && options.textOverlay.text) {
+      const t = options.textOverlay;
+      const size = Math.max(12, Math.min(128, parseInt(t.size || 24, 10)));
+      ctx.save();
+      ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+      ctx.textBaseline = "top";
+      const pad = 12;
+      const metrics = ctx.measureText(t.text);
+      let x = pad, y = pad;
+      if (t.position === "top-right") { x = canvas.width - metrics.width - pad; y = pad; }
+      else if (t.position === "bottom-left") { x = pad; y = canvas.height - size - pad; }
+      else if (t.position === "bottom-right") { x = canvas.width - metrics.width - pad; y = canvas.height - size - pad; }
+      const gradText = ctx.createLinearGradient(x, y, x + metrics.width, y + size);
+      gradText.addColorStop(0, fg);
+      gradText.addColorStop(1, "#5B8DEF");
+      ctx.fillStyle = gradText;
+      ctx.fillText(t.text, x, y);
+      ctx.restore();
     }
 
     // Progress arc overlay

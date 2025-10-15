@@ -33,6 +33,13 @@
   const logoUrlEl = document.getElementById("logoUrl");
   const logoSizeEl = document.getElementById("logoSize");
   const logoPositionEl = document.getElementById("logoPosition");
+
+  const colorMapEl = document.getElementById("colorMap");
+  const particleTrailsEl = document.getElementById("particleTrails");
+  const textOverlayTextEl = document.getElementById("textOverlayText");
+  const textOverlaySizeEl = document.getElementById("textOverlaySize");
+  const textOverlayPositionEl = document.getElementById("textOverlayPosition");
+
   const editTemplatesBtn = document.getElementById("editTemplatesBtn");
 
   const startRecBtn = document.getElementById("startRecBtn");
@@ -45,6 +52,7 @@
   const audioBitrateEl = document.getElementById("audioBitrate");
   const ffPresetEl = document.getElementById("ffPreset");
   const exportPresetEl = document.getElementById("exportPreset");
+  const platformProfileEl = document.getElementById("platformProfile");
 
   let uploadToServer = false;
 
@@ -60,6 +68,8 @@
   let recorder = null;
   let recChunks = [];
   let recTimer = null;
+
+  let nextScheduled = false;
 
   const playlist = [];
   let currentIndex = -1;
@@ -115,6 +125,13 @@
     logoUrl: logoUrlEl.value,
     logoSize: parseInt(logoSizeEl.value || "64", 10),
     logoPosition: logoPositionEl.value,
+    colorMap: colorMapEl.value,
+    particleTrails: particleTrailsEl.checked,
+    textOverlay: {
+      text: textOverlayTextEl.value,
+      size: parseInt(textOverlaySizeEl.value || "24", 10),
+      position: textOverlayPositionEl.value
+    },
     getTrackTitle: () => trackTitleEl.textContent,
     getProgress: () => {
       const el = activeEl;
@@ -345,11 +362,40 @@
         logoPositionEl.value = payload.logoPosition;
         vizOptions.logoPosition = payload.logoPosition;
       }
+      if (typeof payload.colorMap === "string") {
+        colorMapEl.value = payload.colorMap;
+        vizOptions.colorMap = payload.colorMap;
+      }
+      if (typeof payload.particleTrails === "boolean") {
+        particleTrailsEl.checked = payload.particleTrails;
+        vizOptions.particleTrails = payload.particleTrails;
+      }
+      if (payload.textOverlay && typeof payload.textOverlay === "object") {
+        if (typeof payload.textOverlay.text === "string") {
+          textOverlayTextEl.value = payload.textOverlay.text;
+        }
+        if (typeof payload.textOverlay.size === "number") {
+          textOverlaySizeEl.value = payload.textOverlay.size;
+        }
+        if (typeof payload.textOverlay.position === "string") {
+          textOverlayPositionEl.value = payload.textOverlay.position;
+        }
+        vizOptions.textOverlay = {
+          text: textOverlayTextEl.value,
+          size: parseInt(textOverlaySizeEl.value || "24", 10),
+          position: textOverlayPositionEl.value
+        };
+      }
     } catch {}
   });
   fgColorEl.addEventListener("input", () => (vizOptions.fg = fgColorEl.value));
   bgColorEl.addEventListener("input", () => (vizOptions.bg = bgColorEl.value));
   vizModeEl.addEventListener("change", () => (vizOptions.mode = vizModeEl.value));
+  colorMapEl.addEventListener("change", () => (vizOptions.colorMap = colorMapEl.value));
+  particleTrailsEl.addEventListener("change", () => (vizOptions.particleTrails = particleTrailsEl.checked));
+  textOverlayTextEl.addEventListener("input", () => (vizOptions.textOverlay.text = textOverlayTextEl.value));
+  textOverlaySizeEl.addEventListener("input", () => (vizOptions.textOverlay.size = parseInt(textOverlaySizeEl.value || "24", 10)));
+  textOverlayPositionEl.addEventListener("change", () => (vizOptions.textOverlay.position = textOverlayPositionEl.value));
 
   resolutionEl.addEventListener("change", () => {
     const val = resolutionEl.value || "1280x720";
@@ -395,6 +441,27 @@
     }
   });
 
+  platformProfileEl.addEventListener("change", () => {
+    const prof = platformProfileEl.value;
+    let res = "1920x1080";
+    let fr = 60;
+    if (prof === "instagram") {
+      res = "1080x1350"; fr = 30;
+    } else if (prof === "tiktok") {
+      res = "1080x1920"; fr = 30;
+    }
+    // Apply resolution and frame rate
+    resolutionEl.value = res;
+    const [wStr, hStr] = res.split("x");
+    const w = parseInt(wStr, 10);
+    const h = parseInt(hStr, 10);
+    if (Number.isFinite(w) && Number.isFinite(h)) {
+      vizCanvas.width = w;
+      vizCanvas.height = h;
+    }
+    frameRateEl.value = fr;
+  });
+
   editTemplatesBtn.addEventListener("click", () => {
     if (window.TemplatesManager && typeof window.TemplatesManager.open === "function") {
       window.TemplatesManager.open();
@@ -415,6 +482,19 @@
       durationEl.textContent = formatTime(el.duration);
       const pct = (el.currentTime / el.duration) * 1000;
       seekBar.value = isFinite(pct) ? pct : 0;
+
+      // Gapless scheduling: pre-start next track slightly before the end
+      if (playlist.length > 0 && !nextScheduled) {
+        const xfade = Math.max(0, Math.min(10, parseFloat(crossfadeEl.value || "0")));
+        const preroll = 0.15; // seconds
+        const remaining = el.duration - el.currentTime;
+        if (remaining <= Math.max(preroll, xfade)) {
+          nextScheduled = true;
+          const next = (currentIndex + 1) % playlist.length;
+          // If crossfade is zero, ramp new track quickly to avoid pop
+          playIndex(next);
+        }
+      }
     } else {
       currentTimeEl.textContent = "0:00";
       durationEl.textContent = "0:00";
@@ -489,6 +569,7 @@
   async function playIndex(idx) {
     if (idx < 0 || idx >= playlist.length) return;
     currentIndex = idx;
+    nextScheduled = false;
     const t = playlist[idx];
 
     ensureAudioContext();

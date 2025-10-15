@@ -133,6 +133,32 @@
             <option value="bottom-right">Bottom-right</option>
           </select>
 
+          <label>Text Overlay</label>
+          <input type="text" id="textOverlayText" placeholder="Now Playing">
+
+          <label>Text Size</label>
+          <input type="number" id="textOverlaySize" value="24" min="12" max="128">
+
+          <label>Text Position</label>
+          <select id="textOverlayPosition">
+            <option value="bottom-left">Bottom-left</option>
+            <option value="bottom-right">Bottom-right</option>
+            <option value="top-left">Top-left</option>
+            <option value="top-right">Top-right</option>
+          </select>
+
+          <label>Color Map</label>
+          <select id="colorMap">
+            <option value="gradient" selected>Gradient (FG→BG)</option>
+            <option value="inferno">Inferno</option>
+            <option value="magma">Magma</option>
+            <option value="viridis">Viridis</option>
+            <option value="turbo">Turbo</option>
+          </select>
+
+          <label>Particle Trails</label>
+          <input type="checkbox" id="particleTrails" checked>
+
           <button id="editTemplatesBtn" class="secondary">Edit Templates</button>
         </div>
       </div>
@@ -171,6 +197,13 @@
             <option value="high">High (CRF 16, 256 kbps, fast)</option>
             <option value="medium" selected>Medium (CRF 20, 192 kbps, veryfast)</option>
             <option value="low">Low (CRF 28, 128 kbps, superfast)</option>
+          </select>
+
+          <label>Platform</label>
+          <select id="platformProfile">
+            <option value="youtube">YouTube 1080p (1920x1080, 60fps)</option>
+            <option value="instagram">Instagram Portrait (1080x1350, 30fps)</option>
+            <option value="tiktok">TikTok Portrait (1080x1920, 30fps)</option>
           </select>
         </div>
         <div class="export-buttons">
@@ -215,6 +248,8 @@
             <option value="radial">Radial</option>
             <option value="waveform">Waveform</option>
             <option value="particles">Particles</option>
+            <option value="waterfall">Waterfall</option>
+            <option value="spectrogram">Spectrogram</option>
           </select>
 
           <label>Foreground</label>
@@ -226,8 +261,18 @@
           <label>Scale</label>
           <input type="number" id="tplScale" value="1.0" step="0.1" min="0.1" max="5">
 
+          <label>Color Map</label>
+          <select id="tplColorMap">
+            <option value="gradient" selected>Gradient (FG→BG)</option>
+            <option value="inferno">Inferno</option>
+            <option value="magma">Magma</option>
+            <option value="viridis">Viridis</option>
+            <option value="turbo">Turbo</option>
+          </select>
+
           <label><input type="checkbox" id="tplOverlayTitle" checked> Show Title</label>
           <label><input type="checkbox" id="tplProgressArc" checked> Progress Arc</label>
+          <label><input type="checkbox" id="tplParticleTrails" checked> Particle Trails</label>
 
           <label>Logo URL</label>
           <input type="text" id="tplLogoUrl" placeholder="/assets/logo.png">
@@ -241,6 +286,18 @@
             <option value="top-right">Top-right</option>
             <option value="bottom-left">Bottom-left</option>
             <option value="bottom-right">Bottom-right</option>
+          </select>
+
+          <label>Text Overlay</label>
+          <input type="text" id="tplTextOverlayText" placeholder="Now Playing">
+          <label>Text Size</label>
+          <input type="number" id="tplTextOverlaySize" value="24" min="12" max="128">
+          <label>Text Position</label>
+          <select id="tplTextOverlayPosition">
+            <option value="bottom-left">Bottom-left</option>
+            <option value="bottom-right">Bottom-right</option>
+            <option value="top-left">Top-left</option>
+            <option value="top-right">Top-right</option>
           </select>
         </div>
       </div>
