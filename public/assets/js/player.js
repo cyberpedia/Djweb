@@ -17,6 +17,7 @@
   const playlistEl = document.getElementById("playlist");
   const trackTitleEl = document.getElementById("trackTitle");
   const trackArtistEl = document.getElementById("trackArtist");
+  const trackLoudnessEl = document.getElementById("trackLoudness");
   const artworkEl = document.getElementById("artwork");
 
   const eqGridEl = document.getElementById("eqGrid");
@@ -112,6 +113,35 @@
         logoPositionEl.value = payload.logoPosition;
         vizOptions.logoPosition = payload.logoPosition;
       }
+      if (typeof payload.colorMap === "string") {
+        colorMapEl.value = payload.colorMap;
+        vizOptions.colorMap = payload.colorMap;
+      }
+      if (typeof payload.particleTrails === "boolean") {
+        particleTrailsEl.checked = payload.particleTrails;
+        vizOptions.particleTrails = payload.particleTrails;
+      }
+      if (payload.textOverlay && typeof payload.textOverlay === "object") {
+        if (typeof payload.textOverlay.text === "string") {
+          textOverlayTextEl.value = payload.textOverlay.text;
+        }
+        if (typeof payload.textOverlay.size === "number") {
+          textOverlaySizeEl.value = payload.textOverlay.size;
+        }
+        if (typeof payload.textOverlay.position === "string") {
+          textOverlayPositionEl.value = payload.textOverlay.position;
+        }
+        vizOptions.textOverlay = {
+          text: textOverlayTextEl.value,
+          size: parseInt(textOverlaySizeEl.value || "24", 10),
+          position: textOverlayPositionEl.value
+        };
+      }
+      if (Array.isArray(payload.layers)) {
+        vizOptions.layers = payload.layers.slice();
+      } else {
+        vizOptions.layers = [];
+      }
     }
   });
 
@@ -128,6 +158,7 @@
     logoPosition: logoPositionEl.value,
     colorMap: colorMapEl.value,
     particleTrails: particleTrailsEl.checked,
+    layers: [],
     textOverlay: {
       text: textOverlayTextEl.value,
       size: parseInt(textOverlaySizeEl.value || "24", 10),
@@ -441,6 +472,11 @@
           position: textOverlayPositionEl.value
         };
       }
+      if (Array.isArray(payload.layers)) {
+        vizOptions.layers = payload.layers.slice();
+      } else {
+        vizOptions.layers = [];
+      }
     } catch {}
   });
   fgColorEl.addEventListener("input", () => (vizOptions.fg = fgColorEl.value));
@@ -657,7 +693,17 @@
         const tnow = audioCtx.currentTime;
         inactive.gain.gain.cancelScheduledValues(tnow);
         inactive.gain.gain.setTargetAtTime(g, tnow, 0.25);
-      }).catch(() => {});
+
+        // Update loudness display (approx)
+        try {
+          const target = mode === "lufs" ? 0.10 : 0.12;
+          const rms = target / Math.max(1e-5, g);
+          const lufs = 20 * Math.log10(Math.max(1e-5, rms));
+          if (trackLoudnessEl) trackLoudnessEl.textContent = `≈ ${lufs.toFixed(1)} LUFS`;
+        } catch {}
+      }).catch(() => { if (trackLoudnessEl) trackLoudnessEl.textContent = ""; });
+    } else {
+      if (trackLoudnessEl) trackLoudnessEl.textContent = "";
     }
 
     const activeGainNode = activeId === "A" ? gainA : gainB;
@@ -687,6 +733,7 @@
     playPauseBtn.textContent = "⏸";
     trackTitleEl.textContent = t.name || "Unknown";
     trackArtistEl.textContent = "";
+    if (trackLoudnessEl) trackLoudnessEl.textContent = "";
     artworkEl.style.background = "radial-gradient(80% 80% at 30% 20%, #1b2a3a, #0f1a25)";
     renderPlaylist();
   }
@@ -738,7 +785,7 @@
       form.append("crf", parseInt(crfEl.value || "18", 10));
       form.append("abitrate", parseInt(audioBitrateEl.value || "192", 10));
       form.append("preset", ffPresetEl.value || "veryfast");
-      form.append("loudnorm", exportLoudnormEl.checked ? "1" : "");
+      form.append("loudnorm", exportLoudnormEl.value || "off");
 
       try {
         const res = await fetch("/api/export.php", { method: "POST", body: form });

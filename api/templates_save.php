@@ -16,7 +16,7 @@ if (!is_array($data)) {
   exit;
 }
 
-$allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram'];
+$allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall'];
 $sanitized = [];
 foreach ($data as $tpl) {
   if (!is_array($tpl)) continue;
@@ -45,6 +45,29 @@ foreach ($data as $tpl) {
     $textOverlay = ['text' => $text, 'size' => $size, 'position' => $pos];
   }
 
+  // Layers
+  $layers = [];
+  if (isset($tpl['layers']) && is_array($tpl['layers'])) {
+    foreach ($tpl['layers'] as $layer) {
+      if (!is_array($layer)) continue;
+      $type = isset($layer['type']) ? trim($layer['type']) : '';
+      $pos = isset($layer['position']) ? trim($layer['position']) : 'top-left';
+      if (!in_array($pos, $validPos, true)) $pos = 'top-left';
+      if ($type === 'text') {
+        $text = isset($layer['text']) ? trim($layer['text']) : '';
+        $size = isset($layer['size']) ? intval($layer['size']) : 24;
+        $layers[] = ['type' => 'text', 'text' => $text, 'size' => $size, 'position' => $pos];
+      } elseif ($type === 'logo') {
+        $url = isset($layer['url']) ? trim($layer['url']) : '';
+        $size = isset($layer['size']) ? intval($layer['size']) : 64;
+        $layers[] = ['type' => 'logo', 'url' => $url, 'size' => $size, 'position' => $pos];
+      } elseif ($type === 'progressArc') {
+        $radius = isset($layer['radius']) ? intval($layer['radius']) : 26;
+        $layers[] = ['type' => 'progressArc', 'radius' => $radius, 'position' => $pos];
+      }
+    }
+  }
+
   $sanitized[] = [
     'name' => $name,
     'mode' => $mode,
@@ -58,7 +81,8 @@ foreach ($data as $tpl) {
     'logoUrl' => $logoUrl,
     'logoSize' => $logoSize,
     'logoPosition' => $logoPosition,
-    'textOverlay' => $textOverlay
+    'textOverlay' => $textOverlay,
+    'layers' => $layers
   ];
 }
 

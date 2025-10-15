@@ -30,8 +30,26 @@
 
   const vizTemplateEl = document.getElementById("vizTemplate");
 
+  // Layers UI
+  const tplLayersListEl = document.getElementById("tplLayersList");
+  const layerAddTextBtn = document.getElementById("layerAddText");
+  const layerAddLogoBtn = document.getElementById("layerAddLogo");
+  const layerAddProgressBtn = document.getElementById("layerAddProgress");
+  const layerUpBtn = document.getElementById("layerUp");
+  const layerDownBtn = document.getElementById("layerDown");
+  const layerRemoveBtn = document.getElementById("layerRemove");
+
+  const layerTypeEl = document.getElementById("layerType");
+  const layerTextEl = document.getElementById("layerText");
+  const layerSizeEl = document.getElementById("layerSize");
+  const layerLogoUrlEl = document.getElementById("layerLogoUrl");
+  const layerLogoSizeEl = document.getElementById("layerLogoSize");
+  const layerRadiusEl = document.getElementById("layerRadius");
+  const layerPositionEl = document.getElementById("layerPosition");
+
   let templates = [];
   let selectedIdx = -1;
+  let selectedLayerIdx = -1;
 
   async function loadTemplatesFromServer() {
     try {
@@ -59,6 +77,120 @@
     });
   }
 
+  function getLayers() {
+    const tpl = templates[selectedIdx];
+    if (!tpl) return [];
+    if (!Array.isArray(tpl.layers)) tpl.layers = [];
+    return tpl.layers;
+  }
+
+  function renderLayersList() {
+    const layers = getLayers();
+    tplLayersListEl.innerHTML = "";
+    layers.forEach((layer, i) => {
+      const li = document.createElement("li");
+      li.textContent = layer.type || "layer";
+      li.className = i === selectedLayerIdx ? "active" : "";
+      li.addEventListener("click", () => selectLayer(i));
+      tplLayersListEl.appendChild(li);
+    });
+  }
+
+  function updateLayerFormVisibility(type) {
+    const showText = type === "text";
+    const showLogo = type === "logo";
+    const showProg = type === "progressArc";
+    document.querySelector(".layer-text-fields").style.display = showText ? "grid" : "none";
+    document.querySelector(".layer-logo-fields").style.display = showLogo ? "grid" : "none";
+    document.querySelector(".layer-progress-fields").style.display = showProg ? "grid" : "none";
+  }
+
+  function selectLayer(i) {
+    selectedLayerIdx = i;
+    renderLayersList();
+    const layers = getLayers();
+    const layer = layers[i];
+    if (!layer) {
+      layerTypeEl.value = "";
+      updateLayerFormVisibility("");
+      return;
+    }
+    layerTypeEl.value = layer.type || "";
+    layerPositionEl.value = layer.position || "top-left";
+    if (layer.type === "text") {
+      layerTextEl.value = layer.text || "";
+      layerSizeEl.value = Number.isFinite(layer.size) ? layer.size : 24;
+    } else if (layer.type === "logo") {
+      layerLogoUrlEl.value = layer.url || "";
+      layerLogoSizeEl.value = Number.isFinite(layer.size) ? layer.size : 64;
+    } else if (layer.type === "progressArc") {
+      layerRadiusEl.value = Number.isFinite(layer.radius) ? layer.radius : 26;
+    }
+    updateLayerFormVisibility(layer.type);
+  }
+
+  function readLayerForm() {
+    const type = layerTypeEl.value;
+    const position = layerPositionEl.value;
+    if (type === "text") {
+      return { type, position, text: layerTextEl.value, size: parseInt(layerSizeEl.value || "24", 10) };
+    }
+    if (type === "logo") {
+      return { type, position, url: layerLogoUrlEl.value.trim(), size: parseInt(layerLogoSizeEl.value || "64", 10) };
+    }
+    if (type === "progressArc") {
+      return { type, position, radius: parseInt(layerRadiusEl.value || "26", 10) };
+    }
+    return null;
+  }
+
+  function applyLayerForm() {
+    if (selectedLayerIdx < 0) return;
+    const layers = getLayers();
+    const upd = readLayerForm();
+    if (!upd) return;
+    layers[selectedLayerIdx] = upd;
+    renderLayersList();
+  }
+
+  function addLayer(type) {
+    if (selectedIdx < 0) return;
+    const layers = getLayers();
+    let layer = null;
+    if (type === "text") layer = { type: "text", text: "Sample", size: 24, position: "bottom-left" };
+    else if (type === "logo") layer = { type: "logo", url: "", size: 64, position: "top-left" };
+    else if (type === "progressArc") layer = { type: "progressArc", radius: 26, position: "top-right" };
+    if (!layer) return;
+    layers.push(layer);
+    selectedLayerIdx = layers.length - 1;
+    renderLayersList();
+    selectLayer(selectedLayerIdx);
+  }
+
+  function moveLayer(dir) {
+    const layers = getLayers();
+    if (selectedLayerIdx < 0 || selectedLayerIdx >= layers.length) return;
+    const ni = selectedLayerIdx + dir;
+    if (ni < 0 || ni >= layers.length) return;
+    const temp = layers[selectedLayerIdx];
+    layers[selectedLayerIdx] = layers[ni];
+    layers[ni] = temp;
+    selectedLayerIdx = ni;
+    renderLayersList();
+  }
+
+  function removeLayer() {
+    const layers = getLayers();
+    if (selectedLayerIdx < 0 || selectedLayerIdx >= layers.length) return;
+    layers.splice(selectedLayerIdx, 1);
+    selectedLayerIdx = Math.min(selectedLayerIdx, layers.length - 1);
+    renderLayersList();
+    if (layers.length) selectLayer(selectedLayerIdx); else {
+      layerTypeEl.value = "";
+      updateLayerFormVisibility("");
+    }
+  }
+
   function selectIndex(i) {
     selectedIdx = i;
     renderList();
@@ -81,6 +213,9 @@
     tplTextOverlayTextEl.value = to.text || "";
     tplTextOverlaySizeEl.value = Number.isFinite(to.size) ? to.size : 24;
     tplTextOverlayPositionEl.value = to.position || "bottom-left";
+
+    selectedLayerIdx = -1;
+    renderLayersList();
   }
 
   function readForm() {
@@ -101,7 +236,8 @@
         text: tplTextOverlayTextEl.value.trim(),
         size: parseInt(tplTextOverlaySizeEl.value || "24", 10),
         position: tplTextOverlayPositionEl.value
-      }
+      },
+      layers: getLayers().slice()
     };
   }
 
@@ -153,10 +289,26 @@
   });
 
   tplSaveBtn.addEventListener("click", async () => {
-    if (selectedIdx < 0) return;
+    if (selectedId << 0) return;
+    applyLayerForm();
     templates[selectedIdx] = readForm();
     await saveTemplatesToServer();
   });
+
+  // Layers controls
+  layerAddTextBtn.addEventListener("click", () => addLayer("text"));
+  layerAddLogoBtn.addEventListener("click", () => addLayer("logo"));
+  layerAddProgressBtn.addEventListener("click", () => addLayer("progressArc"));
+  layerUpBtn.addEventListener("click", () => moveLayer(-1));
+  layerDownBtn.addEventListener("click", () => moveLayer(1));
+  layerRemoveBtn.addEventListener("click", () => removeLayer());
+
+  // Layer form live updates
+  layerTextEl.addEventListener("input", applyLayerForm);
+  layerSizeEl.addEventListener("input", applyLayerForm);
+  layerLogoUrlEl.addEventListener("input", applyLayerForm);
+  layerLogoSizeEl.addEventListener("input", applyLayerForm);
+  layerRadiusEl.addEventListener("input", applyLayer });
 
   tplExportBtn.addEventListener("click", () => {
     try {
@@ -202,7 +354,7 @@
       const text = await f.text();
       const arr = JSON.parse(text);
       if (!Array.isArray(arr)) throw new Error("Invalid JSON");
-      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram"];
+      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram","wavefall"];
       const validPos = ["top-left","top-right","bottom-left","bottom-right"];
       templates = arr.map((tpl) => {
         const name = typeof tpl.name === "string" ? tpl.name : "Untitled";
@@ -223,7 +375,23 @@
           size: Number.isFinite(to.size) ? to.size : 24,
           position: typeof to.position === "string" ? to.position : "bottom-left"
         };
-        return { name, mode, fg, bg, scale, colorMap, overlayTitle, progressArc, particleTrails, logoUrl, logoSize, logoPosition, textOverlay };
+        // Layers
+        let layers = [];
+        if (Array.isArray(tpl.layers)) {
+          layers = tpl.layers.map((l) => {
+            const type = l && typeof l.type === "string" ? l.type : "";
+            const position = validPos.includes(l?.position) ? l.position : "top-left";
+            if (type === "text") {
+              return { type, position, text: typeof l.text === "string" ? l.text : "", size: Number.isFinite(l.size) ? l.size : 24 };
+            } else if (type === "logo") {
+              return { type, position, url: typeof l.url === "string" ? l.url : "", size: Number.isFinite(l.size) ? l.size : 64 };
+            } else if (type === "progressArc") {
+              return { type, position, radius: Number.isFinite(l.radius) ? l.radius : 26 };
+            }
+            return null;
+          }).filter(Boolean);
+        }
+        return { name, mode, fg, bg, scale, colorMap, overlayTitle, progressArc, particleTrails, logoUrl, logoSize, logoPosition, textOverlay, layers };
       });
       selectedIdx = templates.length ? 0 : -1;
       renderList();

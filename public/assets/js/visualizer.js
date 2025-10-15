@@ -108,9 +108,22 @@ function startVisualizerLoop(analyser, canvas, options) {
   specTmp.height = canvas.height;
   const specCtx = specTmp.getContext("2d");
 
-  // Overlay logo cache
+  // Overlay logo cache (single legacy overlay) + layer image cache
   let lastLogoUrl = "";
   let logoImg = null;
+  const imageCache = new Map(); // url -> HTMLImageElement
+
+  // Bar peaks (peak-hold)
+  let barPeaks = [];
+  let barCountPrev = 0;
+
+  function computePos(pos, w, h, sizeW, sizeH, pad = 16) {
+    let x = pad, y = pad;
+    if (pos === "top-right") { x = w - sizeW - pad; y = pad; }
+    else if (pos === "bottom-left") { x = pad; y = h - sizeH - pad; }
+    else if (pos === "bottom-right") { x = w - sizeW - pad; y = h - sizeH - pad; }
+    return { x, y };
+  }
 
   function detectBeat() {
     analyser.getByteFrequencyData(freqData);
@@ -150,6 +163,12 @@ function startVisualizerLoop(analyser, canvas, options) {
       const barCount = 96;
       const step = Math.floor(bufferLength / barCount);
       const barWidth = w / barCount;
+
+      if (barCountPrev !== barCount) {
+        barPeaks = new Array(barCount).fill(0);
+        barCountPrev = barCount;
+      }
+
       for (let i = 0; i < barCount; i++) {
         const v = freqData[i * step] / 255;
         const barHeight = v * h * 0.9 * scale * beatScale;
@@ -160,6 +179,12 @@ function startVisualizerLoop(analyser, canvas, options) {
         grad.addColorStop(1, "#5B8DEF");
         ctx.fillStyle = grad;
         ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
+
+        // Peak-hold
+        barPeaks[i] = Math.max(barPeaks[i] * 0.96, barHeight);
+        const peakY = h - barPeaks[i];
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        ctx.fillRect(x + 2, Math.max(0, peakY - 2), barWidth - 4, 2);
       }
     } else if (mode === "radial") {
       analyser.getByteTimeDomainData(timeData);
@@ -289,6 +314,22 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
         ctx.fillRect(w - 1, y, 1, 1);
       }
+    } else if (mode === "wavefall") {
+      analyser.getByteTimeDomainData(timeData);
+      const w = canvas.width;
+      const h = canvas.height;
+      // scroll up by 1px
+      ctx.drawImage(canvas, 0, 1, w, h - 1, 0, 0, w, h - 1);
+      const fgRgb = hexToRgb(fg);
+      const bgRgb = hexToRgb(bg);
+      for (let x = 0; x < w; x++) {
+        const idx = Math.floor((x / w) * (bufferLength - 1));
+        const v = (timeData[idx] - 128) / 128;
+        const t = Math.min(1, Math.abs(v) * scale * (1 + pulse * 0.3));
+        const col = lerpColor(bgRgb, fgRgb, t);
+        ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+        ctx.fillRect(x, h - 1, 1, 1);
+      }
     }
 
     if (overlayTitle && typeof getTrackTitle === "function") {
@@ -375,14 +416,70 @@ function startVisualizerLoop(analyser, canvas, options) {
     if (logoImg) {
       const size = Math.max(16, Math.min(512, parseInt(options.logoSize || 64, 10)));
       const pos = options.logoPosition || "top-left";
-      let x = 16, y = 16;
-      if (pos === "top-right") { x = canvas.width - size - 16; y = 16; }
-      else if (pos === "bottom-left") { x = 16; y = canvas.height - size - 16; }
-      else if (pos === "bottom-right") { x = canvas.width - size - 16; y = canvas.height - size - 16; }
+      const p = computePos(pos, canvas.width, canvas.height, size, size, 16);
       ctx.save();
       ctx.globalAlpha = 0.9;
-      ctx.drawImage(logoImg, x, y, size, size);
+      ctx.drawImage(logoImg, p.x, p.y, size, size);
       ctx.restore();
+    }
+
+    // Layers rendering
+    if (Array.isArray(options.layers)) {
+      for (const layer of options.layers) {
+        const type = layer.type;
+        const pos = layer.position || "top-left";
+        if (type === "text" && layer.text) {
+          const size = Math.max(12, Math.min(128, parseInt(layer.size || 24, 10)));
+          ctx.save();
+          ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+          const metrics = ctx.measureText(layer.text);
+          const p = computePos(pos, canvas.width, canvas.height, metrics.width, size, 12);
+          const gradText = ctx.createLinearGradient(p.x, p.y, p.x + metrics.width, p.y + size);
+          gradText.addColorStop(0, fg);
+          gradText.addColorStop(1, "#5B8DEF");
+          ctx.fillStyle = gradText;
+          ctx.fillText(layer.text, p.x, p.y);
+          ctx.restore();
+        } else if (type === "logo" && layer.url) {
+          let img = imageCache.get(layer.url);
+          if (!img) {
+            img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => { imageCache.set(layer.url, img); };
+            img.onerror = () => { imageCache.delete(layer.url); };
+            img.src = layer.url;
+          }
+          if (img && img.complete && img.naturalWidth) {
+            const size = Math.max(16, Math.min(512, parseInt(layer.size || 64, 10)));
+            const p = computePos(pos, canvas.width, canvas.height, size, size, 16);
+            ctx.save();
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(img, p.x, p.y, size, size);
+            ctx.restore();
+          }
+        } else if (type === "progressArc" && typeof options.getProgress === "function") {
+          const info = options.getProgress();
+          const prog = info && Number.isFinite(info.progress) ? info.progress : 0;
+          const r = Math.max(6, Math.min(256, parseInt(layer.radius || 26, 10)));
+          const p = computePos(pos, canvas.width, canvas.height, r * 2, r * 2, 16);
+          const cx = p.x + r;
+          const cy = p.y + r;
+          ctx.save();
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = "rgba(255,255,255,0.12)";
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+          const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+          grad.addColorStop(0, fg);
+          grad.addColorStop(1, "#5B8DEF");
+          ctx.strokeStyle = grad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, prog)));
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
     }
   }
   draw();

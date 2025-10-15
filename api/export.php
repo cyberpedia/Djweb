@@ -74,12 +74,63 @@ if ($convert === 'mp4' && hasFfmpeg()) {
   $allowedPresets = ['ultrafast','superfast','veryfast','faster','fast','medium','slow'];
   if (!in_array($preset, $allowedPresets, true)) $preset = 'veryfast';
 
-  $useLoudnorm = !empty($_POST['loudnorm']);
+  $loudnormMode = isset($_POST['loudnorm']) ? strtolower(trim($_POST['loudnorm'])) : 'off';
+
+  $audioFilter = '';
+  if ($loudnormMode === 'single') {
+    $audioFilter = ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ';
+  } elseif ($loudnormMode === 'two') {
+    // Two-pass loudnorm: analyze first
+    $probeCmd = 'ffmpeg -y -i ' . escapeshellarg($webmPath) . ' -af loudnorm=I=-14:LRA=11:TP=-2:print_format=json -f null - 2>&1';
+    $statsJson = '';
+    if (function_exists('shell_exec')) {
+      $out = @shell_exec($probeCmd);
+      if ($out) {
+        // Attempt to extract JSON object from output
+        if (preg_match('/\\{\\s*\"input_i\"[\\s\\S]*?\\}/', $out, $m)) {
+          $statsJson = $m[0];
+        }
+      }
+    } elseif (function_exists('exec')) {
+      $outArr = [];
+      @exec($probeCmd, $outArr);
+      $out = implode(\"\\n\", $outArr);
+      if ($out) {
+        if (preg_match('/\\{\\s*\"input_i\"[\\s\\S]*?\\}/', $out, $m)) {
+          $statsJson = $m[0];
+        }
+      }
+    }
+    if ($statsJson) {
+      $stats = json_decode($statsJson, true);
+      if (is_array($stats)) {
+        $measured_I = isset($stats['input_i']) ? $stats['input_i'] : null;
+        $measured_LRA = isset($stats['input_lra']) ? $stats['input_lra'] : null;
+        $measured_TP = isset($stats['input_tp']) ? $stats['input_tp'] : null;
+        $measured_thresh = isset($stats['input_thresh']) ? $stats['input_thresh'] : null;
+        $offset = isset($stats['target_offset']) ? $stats['target_offset'] : null;
+        if ($measured_I !== null && $measured_LRA !== null && $measured_TP !== null && $measured_thresh !== null && $offset !== null) {
+          $audioFilter = ' -filter:a ' . escapeshellarg(
+            sprintf('loudnorm=I=-14:LRA=11:TP=-2:measured_I=%s:measured_LRA=%s:measured_TP=%s:measured_thresh=%s:offset=%s:linear=true:print_format=summary',
+              $measured_I, $measured_LRA, $measured_TP, $measured_thresh, $offset
+            )
+          ) . ' ';
+        } else {
+          // Fallback to single-pass
+          $audioFilter = ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ';
+        }
+      } else {
+        $audioFilter = ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ';
+      }
+    } else {
+      $audioFilter = ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ';
+    }
+  }
 
   // Transcode with H.264 + AAC using provided params
   $cmd = 'ffmpeg -y -i ' . escapeshellarg($webmPath)
     . ' -c:v libx264 -preset ' . escapeshellarg($preset) . ' -crf ' . escapeshellarg((string)$crf)
-    . ' -c:a aac ' . ($useLoudnorm ? ' -filter:a loudnorm=I=-14:LRA=11:TP=-2 ' : ' ') . '-b:a ' . escapeshellarg($abArg) . ' '
+    . ' -c:a aac ' . $audioFilter . '-b:a ' . escapeshellarg($abArg) . ' '
     . escapeshellarg($mp4Path);
 
   $code = 1;

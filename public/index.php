@@ -30,6 +30,7 @@
           <div class="meta">
             <div class="title" id="trackTitle">No track</div>
             <div class="artist" id="trackArtist"></div>
+            <div class="artist" id="trackLoudness"></div>
           </div>
         </div>
 
@@ -106,15 +107,17 @@
           <label>Background</label>
           <input type="color" id="bgColor" value="#0B0F14">
 
-          <label>Mode</label>
-          <select id="vizMode">
-            <option value="bars">Bars</option>
-            <option value="radial">Radial</option>
-            <option value="waveform">Waveform</option>
-            <option value="particles">Particles</option>
-            <option value="waterfall">Waterfall</option>
-            <option value="spectrogram">Spectrogram</option>
-          </select>
+          <label>Mo</</label>
+         <<select id="vizMode">
+           <<option value="bars">Ba</</option>
+           <<option value="radial">Radi</</option>
+           <<option value="waveform">Wavefo</</option>
+           <<option value="particles">Particl</</option>
+           <<option value="waterfall">Waterfa</</option>
+           <<option value="spectrogram">Spectrogr</</option>
+           <soption value="wavefall">Wavefa</lloption>
+        </  sel_codeecnewt</>
+
 
           <label>Resolution</label>
           <select id="resolution">
@@ -216,8 +219,12 @@
             <option value="tiktok">TikTok Portrait (1080x1920, 30fps)</option>
           </select>
 
-          <label>Normalize on export (LUFS -14)</label>
-          <input type="checkbox" id="exportLoudnorm">
+          <label>Normalize on export</label>
+          <select id="exportLoudnorm">
+            <option value="off" selected>Off</option>
+            <option value="single">Single-pass (LUFS -14)</option>
+            <option value="two">Two-pass (LUFS -14)</option>
+          </select>
         </div>
         <div class="export-buttons">
           <button id="startRecBtn">Start Recording</button>
@@ -263,6 +270,7 @@
             <option value="particles">Particles</option>
             <option value="waterfall">Waterfall</option>
             <option value="spectrogram">Spectrogram</option>
+            <option value="wavefall">Wavefall</option>
           </select>
 
           <label>Foreground</label>
@@ -312,6 +320,51 @@
             <option value="top-left">Top-left</option>
             <option value="top-right">Top-right</option>
           </select>
+
+          <div class="layers-section">
+            <div class="card-title">Layers</div>
+            <div class="layers-actions">
+              <button id="layerAddText">Add Text</button>
+              <button id="layerAddLogo">Add Logo</button>
+              <button id="layerAddProgress">Add Progress Arc</button>
+              <button id="layerUp" class="secondary">Up</button>
+              <button id="layerDown" class="secondary">Down</button>
+              <button id="layerRemove" class="secondary">Remove</button>
+            </div>
+            <ul id="tplLayersList"></ul>
+
+            <div class="layer-form">
+              <label>Type</label>
+              <input type="text" id="layerType" disabled>
+
+              <div class="layer-text-fields">
+                <label>Text</label>
+                <input type="text" id="layerText" placeholder="Sample text">
+                <label>Size</label>
+                <input type="number" id="layerSize" value="24" min="12" max="128">
+              </div>
+
+              <div class="layer-logo-fields">
+                <label>Logo URL</label>
+                <input type="text" id="layerLogoUrl" placeholder="/assets/logo.png">
+                <label>Size</label>
+                <input type="number" id="layerLogoSize" value="64" min="16" max="512">
+              </div>
+
+              <div class="layer-progress-fields">
+                <label>Radius</label>
+                <input type="number" id="layerRadius" value="26" min="6" max="256">
+              </div>
+
+              <label>Position</label>
+              <select id="layerPosition">
+                <option value="top-left">Top-left</option>
+                <option value="top-right">Top-right</option>
+                <option value="bottom-left">Bottom-left</option>
+                <option value="bottom-right">Bottom-right</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
       <div class="footer">

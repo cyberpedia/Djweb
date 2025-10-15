@@ -192,6 +192,7 @@ button.secondary { opacity: 0.85; }
 .viz-controls input[type=number],
 .viz-controls input[type=text],
 .viz-controls input[type=checkbox],
+.export-controls select,
 .export-controls input[type=number],
 .export-controls input[type=checkbox],
 #vizTemplate {
@@ -265,3 +266,27 @@ button.secondary { opacity: 0.85; }
   border-radius: 8px;
   padding: 6px 10px;
 }
+
+.layers-section {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+.layers-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#tplLayersList {
+  list-style: none; margin: 0; padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0f1620;
+  max-height: 180px;
+  overflow: auto;
+}
+#tplLayersList li {
+  padding: 8px 10px;
+  border-bottom: 1px solid #0f1a25;
+  cursor: pointer;
+}
+#tplLayersList li:last-child { border-bottom: none; }
+#tplLayersList li.active { background: #0e1520; outline: 1px solid var(--accent); }
+.layer-form { display: grid; gap: 8px; }
+.layer-text-fields, .layer-logo-fields, .layer-progress-fields { display: grid; gap: 6px; }
