@@ -195,3 +195,67 @@ button.secondary { opacity: 0.85; }
 .status { margin-top: 8px; color: var(--muted); font-size: 13px; }
 .status a { color: var(--accent); text-decoration: none; }
 .status a:hover { text-decoration: underline; }
+
+/* Modal (Template Editor) */
+.hidden { display: none !important; }
+
+.modal {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10;
+}
+.modal .dialog {
+  width: min(960px, 96vw);
+  background: linear-gradient(180deg, #121821, #0e151d);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  max-height: 90vh;
+}
+.modal .header, .modal .footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal .footer { border-top: 1px solid var(--border); border-bottom: none; }
+.modal .body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+.modal .tpl-sidebar {
+  display: grid; grid-template-rows: auto 1fr; gap: 8px;
+}
+.modal .tpl-actions { display: flex; gap: 8px; }
+.modal #tplList {
+  list-style: none; margin: 0; padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0f1620;
+  overflow: auto;
+}
+.modal #tplList li {
+  padding: 8px 10px;
+  border-bottom: 1px solid #0f1a25;
+  cursor: pointer;
+}
+.modal #tplList li:last-child { border-bottom: none; }
+.modal #tplList li.active { background: #0e1520; outline: 1px solid var(--accent); }
+
+.modal .tpl-form {
+  display: grid; gap: 8px;
+  align-content: start;
+}
+.modal .tpl-form input[type=text],
+.modal .tpl-form input[type=number],
+.modal .tpl-form select {
+  background: #0f1620; color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+}

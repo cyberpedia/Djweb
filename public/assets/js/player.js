@@ -25,6 +25,9 @@
   const fgColorEl = document.getElementById("fgColor");
   const bgColorEl = document.getElementById("bgColor");
   const vizModeEl = document.getElementById("vizMode");
+  const resolutionEl = document.getElementById("resolution");
+  const showTitleEl = document.getElementById("showTitle");
+  const editTemplatesBtn = document.getElementById("editTemplatesBtn");
 
   const startRecBtn = document.getElementById("startRecBtn");
   const stopRecBtn = document.getElementById("stopRecBtn");
@@ -66,8 +69,11 @@
     fg: fgColorEl.value,
     bg: bgColorEl.value,
     mode: vizModeEl.value,
-    scale: 1.0
-  };
+    scale: 1.0,
+    overlayTitle: true,
+    getTrackTitle: () => trackTitleEl.textContent
+_code  new}</;
+
 
   function ensureAudioContext() {
     if (audioCtx) return;
@@ -198,6 +204,27 @@
   fgColorEl.addEventListener("input", () => (vizOptions.fg = fgColorEl.value));
   bgColorEl.addEventListener("input", () => (vizOptions.bg = bgColorEl.value));
   vizModeEl.addEventListener("change", () => (vizOptions.mode = vizModeEl.value));
+
+  resolutionEl.addEventListener("change", () => {
+    const val = resolutionEl.value || "1280x720";
+    const [wStr, hStr] = val.split("x");
+    const w = parseInt(wStr, 10);
+    const h = parseInt(hStr, 10);
+    if (Number.isFinite(w) && Number.isFinite(h)) {
+      vizCanvas.width = w;
+      vizCanvas.height = h;
+    }
+  });
+
+  showTitleEl.addEventListener("change", () => {
+    vizOptions.overlayTitle = showTitleEl.checked;
+  });
+
+  editTemplatesBtn.addEventListener("click", () => {
+    if (window.TemplatesManager && typeof window.TemplatesManager.open === "function") {
+      window.TemplatesManager.open();
+    }
+  });
 
   // Time UI updates
   function formatTime(sec) {

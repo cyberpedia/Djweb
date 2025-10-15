@@ -94,7 +94,21 @@
           <select id="vizMode">
             <option value="bars">Bars</option>
             <option value="radial">Radial</option>
+            <option value="waveform">Waveform</option>
+            <option value="particles">Particles</option>
           </select>
+
+          <label>Resolution</label>
+          <select id="resolution">
+            <option value="1280x720">720p (1280x720)</option>
+            <option value="1920x1080">1080p (1920x1080)</option>
+            <option value="3840x2160">4K (3840x2160)</option>
+          </select>
+
+          <label>Show Title</label>
+          <input type="checkbox" id="showTitle" checked>
+
+          <button id="editTemplatesBtn" class="secondary">Edit Templates</button>
         </div>
       </div>
 
@@ -119,8 +133,52 @@
 
   <audio id="audio" crossorigin="anonymous"></audio>
 
+  <div id="tplModal" class="modal hidden">
+    <div class="dialog">
+      <div class="header">
+        <div>Template Editor</div>
+        <button id="tplCloseBtn" class="secondary">Close</button>
+      </div>
+      <div class="body">
+        <div class="tpl-sidebar">
+          <div class="tpl-actions">
+            <button id="tplNewBtn">New</button>
+            <button id="tplDeleteBtn" class="secondary">Delete</button>
+          </div>
+          <ul id="tplList"></ul>
+        </div>
+        <div class="tpl-form">
+          <label>Name</label>
+          <input type="text" id="tplName" placeholder="Template name">
+
+          <label>Mode</label>
+          <select id="tplMode">
+            <option value="bars">Bars</option>
+            <option value="radial">Radial</option>
+            <option value="waveform">Waveform</option>
+            <option value="particles">Particles</option>
+          </select>
+
+          <label>Foreground</label>
+          <input type="color" id="tplFg" value="#00F5D4">
+
+          <label>Background</label>
+          <input type="color" id="tplBg" value="#0B0F14">
+
+          <label>Scale</label>
+          <input type="number" id="tplScale" value="1.0" step="0.1" min="0.1" max="5">
+        </div>
+      </div>
+      <div class="footer">
+        <button id="tplSaveBtn">Save</button>
+        <div id="tplStatus" class="status"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="/assets/js/equalizer.js"></script>
   <script src="/assets/js/visualizer.js"></script>
   <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/templates.js"></script>
 </body>
 </html>
