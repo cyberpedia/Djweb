@@ -1,0 +1,6 @@
+[
+  { "name": "Neon Bars", "mode": "bars", "fg": "#00F5D4", "bg": "#0B0F14", "scale": 1.0 },
+  { "name": "Aurora Radial", "mode": "radial", "fg": "#5B8DEF", "bg": "#0B0F14", "scale": 1.0 },
+  { "name": "Magenta Pulse", "mode": "radial", "fg": "#FF4D9D", "bg": "#0E1017", "scale": 1.1 },
+  { "name": "Midnight Bars", "mode": "bars", "fg": "#7C3AED", "bg": "#0D1117", "scale": 1.2 }
+]
