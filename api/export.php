@@ -59,8 +59,27 @@ function hasFfmpeg(): bool {
 
 if ($convert === 'mp4' && hasFfmpeg()) {
   $mp4Path = $destDir . DIRECTORY_SEPARATOR . $base . '.mp4';
-  // Transcode with H.264 + AAC
-  $cmd = 'ffmpeg -y -i ' . escapeshellarg($webmPath) . ' -c:v libx264 -preset veryfast -crf 18 -c:a aac -b:a 192k ' . escapeshellarg($mp4Path);
+
+  // Sanitize transcoding params
+  $crf = isset($_POST['crf']) ? intval($_POST['crf']) : 18;
+  if ($crf < 0) $crf = 18;
+  // Typical sensible range for libx264 CRF
+  $crf = max(10, min(40, $crf));
+
+  $ab = isset($_POST['abitrate']) ? intval($_POST['abitrate']) : 192;
+  $ab = max(64, min(320, $ab));
+  $abArg = $ab . 'k';
+
+  $preset = isset($_POST['preset']) ? strtolower(trim($_POST['preset'])) : 'veryfast';
+  $allowedPresets = ['ultrafast','superfast','veryfast','faster','fast','medium','slow'];
+  if (!in_array($preset, $allowedPresets, true)) $preset = 'veryfast';
+
+  // Transcode with H.264 + AAC using provided params
+  $cmd = 'ffmpeg -y -i ' . escapeshellarg($webmPath)
+    . ' -c:v libx264 -preset ' . escapeshellarg($preset) . ' -crf ' . escapeshellarg((string)$crf)
+    . ' -c:a aac -b:a ' . escapeshellarg($abArg) . ' '
+    . escapeshellarg($mp4Path);
+
   $code = 1;
   if (function_exists('shell_exec')) {
     @shell_exec($cmd);

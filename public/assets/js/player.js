@@ -1,5 +1,6 @@
 (function () {
-  const audioEl = document.getElementById("audio");
+  const audioA = document.getElementById("audioA");
+  const audioB = document.getElementById("audioB");
   const fileInput = document.getElementById("fileInput");
   const uploadToggle = document.getElementById("uploadToggle");
 
@@ -11,6 +12,7 @@
   const currentTimeEl = document.getElementById("currentTime");
   const durationEl = document.getElementById("duration");
   const volumeEl = document.getElementById("volume");
+  const crossfadeEl = document.getElementById("crossfade");
 
   const playlistEl = document.getElementById("playlist");
   const trackTitleEl = document.getElementById("trackTitle");
@@ -35,16 +37,20 @@
   const recordDurationEl = document.getElementById("recordDuration");
   const convertMp4El = document.getElementById("convertMp4");
   const exportStatusEl = document.getElementById("exportStatus");
+  const crfEl = document.getElementById("crf");
+  const audioBitrateEl = document.getElementById("audioBitrate");
+  const ffPresetEl = document.getElementById("ffPreset");
 
   let uploadToServer = false;
+
   let audioCtx = null;
-  let mediaSource = null;
   let analyser = null;
   let eqFilters = null;
   let recordDest = null;
 
-  let rafId = null;
-  let timeRafId = null;
+  let sourceA = null, sourceB = null;
+  let gainA = null, gainB = null;
+  let masterGain = null;
 
   let recorder = null;
   let recChunks = [];
@@ -52,6 +58,9 @@
 
   const playlist = [];
   let currentIndex = -1;
+
+  let activeId = "A";
+  let activeEl = audioA;
 
   // Initialize visualizer templates
   AveeViz.loadTemplates(vizTemplateEl).then(() => {
@@ -70,27 +79,44 @@
     bg: bgColorEl.value,
     mode: vizModeEl.value,
     scale: 1.0,
-    overlayTitle: true,
+    overlayTitle: showTitleEl.checked,
     getTrackTitle: () => trackTitleEl.textContent
-_code  new}</;
-
+  };
 
   function ensureAudioContext() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    // Build chain: mediaElementSource -> EQ (x10) -> analyser -> destination
-    mediaSource = audioCtx.createMediaElementSource(audioEl);
+    // Equalizer chain
     eqFilters = AveeEq.createEqualizer(audioCtx);
-    analyser = AveeViz.createAnalyser(audioCtx);
-    recordDest = audioCtx.createMediaStreamDestination();
 
-    // connect: source -> filters[0]
-    mediaSource.connect(eqFilters[0]);
-    // chain filters (already connected internally), connect last filter to analyser and to recordDest
-    eqFilters[eqFilters.length - 1].connect(analyser);
-    analyser.connect(audioCtx.destination);
-    eqFilters[eqFilters.length - 1].connect(recordDest);
+    // Sources and per-source gains
+    sourceA = audioCtx.createMediaElementSource(audioA);
+    sourceB = audioCtx.createMediaElementSource(audioB);
+    gainA = audioCtx.createGain();
+    gainB = audioCtx.createGain();
+    gainA.gain.value = 0.0;
+    gainB.gain.value = 0.0;
+
+    // Mix sources into EQ chain
+    sourceA.connect(gainA);
+    sourceB.connect(gainB);
+    gainA.connect(eqFilters[0]);
+    gainB.connect(eqFilters[0]);
+
+    // Master gain, analyser, record destination
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = parseFloat(volumeEl.value || "1.0");
+
+    // Chain filters in series (already connected internally), connect last filter into master
+    eqFilters[eqFilters.length - 1].connect(masterGain);
+
+    analyser = AveeViz.createAnalyser(audioCtx);
+    masterGain.connect(analyser);
+    masterGain.connect(audioCtx.destination);
+
+    recordDest = audioCtx.createMediaStreamDestination();
+    masterGain.connect(recordDest);
 
     // Mount UI for EQ
     AveeEq.mountEqUI(eqGridEl, eqFilters);
@@ -100,14 +126,27 @@ _code  new}</;
     AveeViz.startVisualizerLoop(analyser, vizCanvas, vizOptions);
   }
 
+  function setMasterVolume() {
+    if (!masterGain) return;
+    const v = parseFloat(volumeEl.value || "1");
+    masterGain.gain.value = Math.max(0, Math.min(1, v));
+  }
+
   // Controls wiring
   playPauseBtn.addEventListener("click", async () => {
     ensureAudioContext();
-    if (audioEl.paused) {
-      await audioEl.play();
+    // If either is playing, pause both; else play active
+    if (!audioA.paused || !audioB.paused) {
+      audioA.pause();
+      audioB.pause();
+      playPauseBtn.textContent = "▶";
+      return;
+    }
+    try {
+      await activeEl.play();
       playPauseBtn.textContent = "⏸";
-    } else {
-      audioEl.pause();
+    } catch (e) {
+      console.warn("Play failed", e);
       playPauseBtn.textContent = "▶";
     }
   });
@@ -162,23 +201,26 @@ _code  new}</;
 
   // Seek and time display
   seekBar.addEventListener("input", () => {
-    if (audioEl.duration && !Number.isNaN(audioEl.duration)) {
-      const t = (parseFloat(seekBar.value) / 1000) * audioEl.duration;
-      audioEl.currentTime = t;
+    const el = activeEl;
+    if (el.duration && !Number.isNaN(el.duration)) {
+      const t = (parseFloat(seekBar.value) / 1000) * el.duration;
+      el.currentTime = t;
     }
   });
 
-  volumeEl.addEventListener("input", () => {
-    audioEl.volume = parseFloat(volumeEl.value);
-  });
+  volumeEl.addEventListener("input", setMasterVolume);
 
-  audioEl.addEventListener("ended", () => {
-    // autoplay next
-    if (playlist.length) {
-      const next = (currentIndex + 1) % playlist.length;
-      playIndex(next);
-    }
-  });
+  function onEnded(id) {
+    return () => {
+      if (id !== activeId) return;
+      if (playlist.length) {
+        const next = (currentIndex + 1) % playlist.length;
+        playIndex(next);
+      }
+    };
+  }
+  audioA.addEventListener("ended", onEnded("A"));
+  audioB.addEventListener("ended", onEnded("B"));
 
   // EQ presets
   eqPresetEl.addEventListener("change", () => {
@@ -234,19 +276,20 @@ _code  new}</;
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
   function updateTimeLoop() {
-    if (audioEl.duration && !Number.isNaN(audioEl.duration)) {
-      currentTimeEl.textContent = formatTime(audioEl.currentTime);
-      durationEl.textContent = formatTime(audioEl.duration);
-      const pct = (audioEl.currentTime / audioEl.duration) * 1000;
+    const el = activeEl;
+    if (el.duration && !Number.isNaN(el.duration)) {
+      currentTimeEl.textContent = formatTime(el.currentTime);
+      durationEl.textContent = formatTime(el.duration);
+      const pct = (el.currentTime / el.duration) * 1000;
       seekBar.value = isFinite(pct) ? pct : 0;
     } else {
       currentTimeEl.textContent = "0:00";
       durationEl.textContent = "0:00";
       seekBar.value = 0;
     }
-    timeRafId = requestAnimationFrame(updateTimeLoop);
+    requestAnimationFrame(updateTimeLoop);
   }
-  timeRafId = requestAnimationFrame(updateTimeLoop);
+  requestAnimationFrame(updateTimeLoop);
 
   // Playlist handling
   function addToPlaylist(track) {
@@ -281,7 +324,10 @@ _code  new}</;
         playlist.splice(idx, 1);
         if (wasCurrent) {
           currentIndex = -1;
-          audioEl.pause();
+          audioA.pause();
+          audioB.pause();
+          gainA && (gainA.gain.value = 0);
+          gainB && (gainB.gain.value = 0);
           playPauseBtn.textContent = "▶";
           trackTitleEl.textContent = "No track";
           trackArtistEl.textContent = "";
@@ -300,21 +346,62 @@ _code  new}</;
     });
   }
 
+  function getInactive() {
+    if (activeId === "A") {
+      return { id: "B", el: audioB, gain: gainB };
+    }
+    return { id: "A", el: audioA, gain: gainA };
+  }
+
   async function playIndex(idx) {
     if (idx < 0 || idx >= playlist.length) return;
     currentIndex = idx;
     const t = playlist[idx];
 
     ensureAudioContext();
-    audioEl.src = t.url;
+
+    const inactive = getInactive();
+    inactive.el.src = t.url;
     try {
-      await audioEl.play();
-      playPauseBtn.textContent = "⏸";
+      await inactive.el.play();
     } catch (e) {
       console.warn("Autoplay blocked or play failed", e);
-      playPauseBtn.textContent = "▶";
+      return;
     }
 
+    const xfade = Math.max(0, Math.min(10, parseFloat(crossfadeEl.value || "0")));
+    const now = audioCtx.currentTime;
+
+    // Prepare gains
+    inactive.gain.gain.cancelScheduledValues(now);
+    inactive.gain.gain.setValueAtTime(inactive.gain.gain.value, now);
+    inactive.gain.gain.linearRampToValueAtTime(1.0, now + xfade);
+
+    const activeGainNode = activeId === "A" ? gainA : gainB;
+    if (activeGainNode) {
+      activeGainNode.gain.cancelScheduledValues(now);
+      activeGainNode.gain.setValueAtTime(activeGainNode.gain.value, now);
+      activeGainNode.gain.linearRampToValueAtTime(0.0, now + xfade);
+    }
+
+    // Update active pointers
+    activeId = inactive.id;
+    activeEl = inactive.el;
+
+    // After crossfade, pause the previous element to free resources
+    if (xfade > 0) {
+      setTimeout(() => {
+        if (activeId === "A") {
+          audioB.pause();
+        } else {
+          audioA.pause();
+        }
+      }, Math.ceil(xfade * 1000) + 100);
+    } else {
+      if (activeId === "A") audioB.pause(); else audioA.pause();
+    }
+
+    playPauseBtn.textContent = "⏸";
     trackTitleEl.textContent = t.name || "Unknown";
     trackArtistEl.textContent = "";
     artworkEl.style.background = "radial-gradient(80% 80% at 30% 20%, #1b2a3a, #0f1a25)";
@@ -365,6 +452,10 @@ _code  new}</;
       const form = new FormData();
       form.append("video", blob, "visualizer.webm");
       form.append("convert", convertMp4El.checked ? "mp4" : "");
+      form.append("crf", parseInt(crfEl.value || "18", 10));
+      form.append("abitrate", parseInt(audioBitrateEl.value || "192", 10));
+      form.append("preset", ffPresetEl.value || "veryfast");
+
       try {
         const res = await fetch("/api/export.php", { method: "POST", body: form });
         const data = await res.json();

@@ -49,6 +49,12 @@
           <span>Vol</span>
           <input type="range" id="volume" min="0" max="1" value="1" step="0.01">
         </div>
+
+        <div class="seek-row">
+          <span>Crossfade</span>
+          <input type="number" id="crossfade" value="2" min="0" max="10" step="0.1">
+          <span>sec</span>
+        </div>
       </div>
 
       <div class="playlist-card">
@@ -96,6 +102,7 @@
             <option value="radial">Radial</option>
             <option value="waveform">Waveform</option>
             <option value="particles">Particles</option>
+            <option value="waterfall">Waterfall</option>
           </select>
 
           <label>Resolution</label>
@@ -117,10 +124,29 @@
         <div class="export-controls">
           <label>Framerate</label>
           <input type="number" id="frameRate" value="60" min="1" max="60">
+
           <label>Duration (sec)</label>
           <input type="number" id="recordDuration" value="15" min="1" max="900">
+
           <label>Convert to MP4 (server)</label>
           <input type="checkbox" id="convertMp4" checked>
+
+          <label>CRF</label>
+          <input type="number" id="crf" value="18" min="10" max="40" step="1">
+
+          <label>Audio bitrate (kbps)</label>
+          <input type="number" id="audioBitrate" value="192" min="64" max="320" step="1">
+
+          <label>FFmpeg preset</label>
+          <select id="ffPreset">
+            <option value="ultrafast">ultrafast</option>
+            <option value="superfast">superfast</option>
+            <option value="veryfast" selected>veryfast</option>
+            <option value="faster">faster</option>
+            <option value="fast">fast</option>
+            <option value="medium">medium</option>
+            <option value="slow">slow</option>
+          </select>
         </div>
         <div class="export-buttons">
           <button id="startRecBtn">Start Recording</button>
@@ -131,7 +157,8 @@
     </section>
   </main>
 
-  <audio id="audio" crossorigin="anonymous"></audio>
+  <audio id="audioA" crossorigin="anonymous"></audio>
+  <audio id="audioB" crossorigin="anonymous"></audio>
 
   <div id="tplModal" class="modal hidden">
     <div class="dialog">
@@ -144,6 +171,11 @@
           <div class="tpl-actions">
             <button id="tplNewBtn">New</button>
             <button id="tplDeleteBtn" class="secondary">Delete</button>
+            <button id="tplExportBtn" class="secondary">Export JSON</button>
+            <label class="file-btn">
+              <input type="file" id="tplImportInput" accept="application/json">
+              Import JSON
+            </label>
           </div>
           <ul id="tplList"></ul>
         </div>

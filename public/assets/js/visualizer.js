@@ -18,6 +18,15 @@ function startVisualizerLoop(analyser, canvas, options) {
   const freqData = new Uint8Array(bufferLength);
   const timeData = new Uint8Array(bufferLength);
 
+  function hexToRgb(hex) {
+    const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
+    if (!m) return [0, 0, 0];
+    const int = parseInt(m[1], 16);
+    return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+  }
+  function lerpColor(a, b, t) {
+    t = Math.max(0, Math.min(1);
+
   // Simple beat detection on low-band energy
   let pulse = 0;
   let energyAvg = 0;
@@ -157,6 +166,29 @@ function startVisualizerLoop(analyser, canvas, options) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
+      }
+    } else if (mode === "waterfall") {
+      // Spectrogram waterfall: scroll up and draw a new frequency slice at bottom
+      analyser.getByteFrequencyData(freqData);
+      const w = canvas.width;
+      const h = canvas.height;
+      // Scroll previous content up by 1px
+      ctx.drawImage(canvas, 0, 1, w, h - 1, 0, 0, w, h - 1);
+      // Map frequency bins to columns
+      const cols = Math.min(384, Math.floor(w / 2));
+      const step = Math.floor(bufferLength / cols);
+      // Parse colors for gradient mapping
+      const fgRgb = hexToRgb(fg);
+      const bgRgb = hexToRgb(bg);
+      for (let i = 0; i < cols; i++) {
+        const idx = i * step;
+        const v = freqData[idx] / 255;
+        const t = Math.pow(v * scale, 0.8) * (1 + pulse * 0.6); // gamma + beat boost
+        const col = lerpColor(bgRgb, fgRgb, Math.min(1, t));
+        ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+        const x = Math.floor((i / cols) * w);
+        const nextX = Math.floor(((i + 1) / cols) * w);
+        ctx.fillRect(x, h - 1, Math.max(1, nextX - x), 1);
       }
     }
 

@@ -12,6 +12,8 @@
   const tplNewBtn = document.getElementById("tplNewBtn");
   const tplDeleteBtn = document.getElementById("tplDeleteBtn");
   const tplSaveBtn = document.getElementById("tplSaveBtn");
+  const tplExportBtn = document.getElementById("tplExportBtn");
+  const tplImportInput = document.getElementById("tplImportInput");
 
   const vizTemplateEl = document.getElementById("vizTemplate");
 
@@ -117,6 +119,52 @@
     if (selectedIdx < 0) return;
     templates[selectedIdx] = readForm();
     await saveTemplatesToServer();
+  });
+
+  tplExportBtn.addEventListener("click", () => {
+    try {
+      const blob = new Blob([JSON.stringify(templates, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "visualizer_templates.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      tplStatusEl.textContent = "Exported.";
+    } catch {
+      tplStatusEl.textContent = "Export failed.";
+    }
+  });
+
+  tplImportInput.addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) throw new Error("Invalid JSON");
+      // Basic validation and sanitize
+      const allowedModes = ["bars","radial","waveform","particles","waterfall"];
+      templates = arr.map((tpl) => {
+        const name = typeof tpl.name === "string" ? tpl.name : "Untitled";
+        const mode = allowedModes.includes(tpl.mode) ? tpl.mode : "bars";
+        const fg = typeof tpl.fg === "string" ? tpl.fg : "#00F5D4";
+        const bg = typeof tpl.bg === "string" ? tpl.bg : "#0B0F14";
+        const scale = Number.isFinite(tpl.scale) ? tpl.scale : 1.0;
+        return { name, mode, fg, bg, scale };
+      });
+      selectedIdx = templates.length ? 0 : -1;
+      renderList();
+      if (templates.length) selectIndex(0);
+      await saveTemplatesToServer();
+      tplStatusEl.textContent = "Imported.";
+      // reset input
+      e.target.value = "";
+    } catch {
+      tplStatusEl.textContent = "Import failed.";
+    }
   });
 
   window.TemplatesManager = {
