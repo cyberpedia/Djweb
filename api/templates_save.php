@@ -18,7 +18,7 @@ if (!is_array($data)) {
 $allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall','circlebars','circularwave','mirrorwave','mirrorspectrum'];
 $validPos = ['top-left','top-right','bottom-left','bottom-right'];
 $validBlend = ['normal','screen','multiply','overlay','add'];
-$validEase = ['linear','easeIn','easeOut','easeInOut'];
+$validEase = ['linear','easeIn','easeOut','easeInOut','bezier'];
 $validAnim = ['none','float','spin','pulse','keyframes'];
 
 $sanitizeColor = function ($hex, $fallback = '#ffffff') {
@@ -111,7 +111,18 @@ foreach ($data as $tpl) {
             if ($s < 0.01) $s = 0.01; if ($s > 10) $s = 10.0;
             $e = isset($p['e']) ? trim($p['e']) : '';
             $segEase = in_array($e, $validEase, true) ? $e : null;
-            $kf[] = $segEase ? ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s, 'e' => $segEase] : ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s];
+            $entry = ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s];
+            if ($segEase) {
+              $entry['e'] = $segEase;
+              if ($segEase === 'bezier' && isset($p['b']) && is_array($p['b']) && count($p['b']) === 4) {
+                $bx1 = max(0.0, min(1.0, floatval($p['b'][0])));
+                $by1 = max(0.0, min(1.0, floatval($p['b'][1])));
+                $bx2 = max(0.0, min(1.0, floatval($p['b'][2])));
+                $by2 = max(0.0, min(1.0, floatval($p['b'][3])));
+                $entry['b'] = [$bx1, $by1, $bx2, $by2];
+              }
+            }
+            $kf[] = $entry;
           }
           usort($kf, function ($a, $b) { return $a['t'] <=> $b['t']; });
         }

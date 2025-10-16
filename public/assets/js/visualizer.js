@@ -169,14 +169,51 @@ function startVisualizerLoop(analyser, canvas, options) {
     pulse *= pulseDecay;
   }
 
-  function easeT(t, mode) {
+  function cubicBezierYForX(x, x1, y1, x2, y2) {
+    x = Math.max(0, Math.min(1, x));
+    const cx = 3 * x1;
+    const bx = 3 * (x2 - x1) - cx;
+    const ax = 1 - cx - bx;
+
+    const cy = 3 * y1;
+    const by = 3 * (y2 - y1) - cy;
+    const ay = 1 - cy - by;
+
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleXDeriv = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+
+    let t = x;
+    for (let i = 0; i < 5; i++) {
+      const xEst = sampleX(t) - x;
+      const dX = sampleXDeriv(t);
+      if (Math.abs(xEst) < 1e-6) break;
+      if (Math.abs(dX) < 1e-6) break;
+      t = t - xEst / dX;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+    }
+    let t0 = 0, t1 = 1;
+    for (let i = 0; i < 8; i++) {
+      const xEst = sampleX(t);
+      if (Math.abs(xEst - x) < 1e-6) break;
+      if (x > xEst) t0 = t; else t1 = t;
+      t = 0.5 * (t0 + t1);
+    }
+    const y = sampleY(t);
+    return Math.max(0, Math.min(1, y));
+  }
+
+  function easeT(t, mode, bez) {
     t = Math.max(0, Math.min(1, t));
+    if (mode === "bezier" && Array.isArray(bez) && bez.length === 4) {
+      return cubicBezierYForX(t, bez[0], bez[1], bez[2], bez[3]);
+    }
     if (mode === "easeIn") return t * t;
     if (mode === "easeOut") return t * (2 - t);
     if (mode === "easeInOut") {
       return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     }
-    return t; // linear
+    return t; // linear or inherit
   }
 
   function sampleKeyframes(anim, nowSec) {
@@ -197,7 +234,8 @@ function startVisualizerLoop(analyser, canvas, options) {
     let lt = (ft - t0) / span;
     lt = Math.max(0, Math.min(1, lt));
     const easeSeg = (typeof a.e === "string" ? a.e : easeGlobal);
-    const et = easeT(lt, easeSeg);
+    const bez = Array.isArray(a.b) && a.b.length === 4 ? a.b : null;
+    const et = easeT(lt, easeSeg, bez);
     const lerp = (x0, x1) => x0 + (x1 - x0) * et;
     const tx = lerp(Number.isFinite(a.x) ? a.x : 0, Number.isFinite(b.x) ? b.x : 0);
     const ty = lerp(Number.isFinite(a.y) ? a.y : 0, Number.isFinite(b.y) ? b.y : 0);

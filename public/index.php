@@ -432,8 +432,20 @@
                       <option value="easeIn">Ease In</option>
                       <option value="easeOut">Ease Out</option>
                       <option value="easeInOut">Ease In Out</option>
+                      <option value="bezier">Bezier (custom)</option>
                     </select>
                     <span class="muted">(applies from this keyframe to the next)</span>
+                  </div>
+
+                  <div class="kf-bezier hidden" id="kfBezierBox">
+                    <canvas id="kfBezier" width="240" height="240"></canvas>
+                    <div class="kf-bezier-fields">
+                      <label>x1</label><input type="number" id="kfBx1" min="0" max="1" step="0.01" value="0.42">
+                      <label>y1</label><input type="number" id="kfBy1" min="0" max="1" step="0.01" value="0.00">
+                      <label>x2</label><input type="number" id="kfBx2" min="0" max="1" step="0.01" value="0.58">
+                      <label>y2</label><input type="number" id="kfBy2" min="0" max="1" step="0.01" value="1.00">
+                      <button id="kfBezierReset" class="secondary">Reset</button>
+                    </div>
                   </div>
 
                   <canvas id="kfCurves" width="720" height="120"></canvas>

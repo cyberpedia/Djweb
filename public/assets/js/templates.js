@@ -92,6 +92,13 @@
   const kfSEl = document.getElementById("kfS");
   const kfSegEaseEl = document.getElementById("kfSegEase");
   const kfCurvesEl = document.getElementById("kfCurves");
+  const kfBezierBox = document.getElementById("kfBezierBox");
+  const kfBezierEl = document.getElementById("kfBezier");
+  const kfBx1El = document.getElementById("kfBx1");
+  const kfBy1El = document.getElementById("kfBy1");
+  const kfBx2El = document.getElementById("kfBx2");
+  const kfBy2El = document.getElementById("kfBy2");
+  const kfBezierReset = document.getElementById("kfBezierReset");
 
   // Keyframe editor state
   let kf = [];
@@ -577,7 +584,139 @@
     if (mode === "easeIn") return t * t;
     if (mode === "easeOut") return t * (2 - t);
     if (mode === "easeInOut") return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    return t;
+    return t; // linear or inherit handled in caller
+  }
+
+  // Cubic-bezier utilities (CSS-like)
+  function cubicBezierYForX(x, x1, y1, x2, y2) {
+    x = Math.max(0, Math.min(1, x));
+    const cx = 3 * x1;
+    const bx = 3 * (x2 - x1) - cx;
+    const ax = 1 - cx - bx;
+
+    const cy = 3 * y1;
+    const by = 3 * (y2 - y1) - cy;
+    const ay = 1 - cy - by;
+
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleXDeriv = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+
+    // Newton-Raphson
+    let t = x;
+    for (let i = 0; i < 5; i++) {
+      const xEst = sampleX(t) - x;
+      const dX = sampleXDeriv(t);
+      if (Math.abs(xEst) < 1e-6) break;
+      if (Math.abs(dX) < 1e-6) break;
+      t = t - xEst / dX;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+    }
+
+    // Fallback binary search if Newton out of bounds
+    let t0 = 0, t1 = 1;
+    for (let i = 0; i < 8; i++) {
+      const xEst = sampleX(t);
+      if (Math.abs(xEst - x) < 1e-6) break;
+      if (x > xEst) t0 = t; else t1 = t;
+      t = 0.5 * (t0 + t1);
+    }
+    const y = sampleY(t);
+    return Math.max(0, Math.min(1, y));
+  }
+
+  function kfBezierDefault() {
+    return [0.42, 0.0, 0.58, 1.0]; // ease-in-out
+  }
+
+  function kfGetSegBezier() {
+    const cur = kf[kfSelected];
+    if (!cur || kfSelected >= kf.length - 1) return null;
+    const b = Array.isArray(cur.b) && cur.b.length === 4 ? cur.b : null;
+    return b ? b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : null;
+  }
+
+  function kfSetSegBezier(arr) {
+    if (!Array.isArray(arr) || arr.length !== 4) return;
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    const b = arr.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0)));
+    kf[kfSelected].b = b;
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfBezierSyncInputs() {
+    const b = kfGetSegBezier() || kfBezierDefault();
+    kfBx1El && (kfBx1El.value = b[0].toFixed(2));
+    kfBy1El && (kfBy1El.value = b[1].toFixed(2));
+    kfBx2El && (kfBx2El.value = b[2].toFixed(2));
+    kfBy2El && (kfBy2El.value = b[3].toFixed(2));
+  }
+
+  function kfBezierFromInputs() {
+    const x1 = parseFloat(kfBx1El.value || "0") || 0;
+    const y1 = parseFloat(kfBy1El.value || "0") || 0;
+    const x2 = parseFloat(kfBx2El.value || "0") || 0;
+    const y2 = parseFloat(kfBy2El.value || "0") || 0;
+    return [
+      Math.max(0, Math.min(1, x1)),
+      Math.max(0, Math.min(1, y1)),
+      Math.max(0, Math.min(1, x2)),
+      Math.max(0, Math.min(1, y2))
+    ];
+  }
+
+  function kfRenderBezier() {
+    if (!kfBezierEl) return;
+    const ctx = kfBezierEl.getContext("2d");
+    const w = kfBezierEl.width, h = kfBezierEl.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // grid
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const x = Math.round((w * i) / 10);
+      const y = Math.round((h * i) / 10);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    // diagonal (linear)
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(w, 0);
+    ctx.stroke();
+
+    const b = kfGetSegBezier() || kfBezierDefault();
+    const [x1, y1, x2, y2] = b;
+
+    const toCanvas = (x, y) => [x * w, (1 - y) * h];
+
+    // Curve
+    ctx.strokeStyle = "#00f5d4";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 48; i++) {
+      const t = i / 48;
+      const x = t;
+      const y = cubicBezierYForX(t, x1, y1, x2, y2);
+      const [cx, cy] = toCanvas(x, y);
+      if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
+
+    // Handles
+    const [hx1, hy1] = toCanvas(x1, y1);
+    const [hx2, hy2] = toCanvas(x2, y2);
+    ctx.fillStyle = "#5b8def";
+    ctx.strokeStyle = "#0b0f14";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(hx1, hy1, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(hx2, hy2, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   }
 
   function kfUpdateVisibility() {
@@ -585,7 +724,14 @@
     if (kfEditorEl) kfEditorEl.classList.toggle("hidden", !isKF);
     if (isKF) {
       kfLoadFromTextarea();
+      // Toggle bezier box depending on selection
+      const isLast = kfSelected >= kf.length - 1;
+      const bez = (kfSegEaseEl && kfSegEaseEl.value === "bezier" && !isLast);
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !bez);
+      if (bez) { kfBezierSyncInputs(); kfRenderBezier(); }
       kfRenderAll();
+    } else {
+      if (kfBezierBox) kfBezierBox.classList.add("hidden");
     }
   }
 
@@ -635,11 +781,16 @@
     kfSEl.value = (cur.s).toFixed(2);
     if (kfTimeLabel) kfTimeLabel.textContent = `t=${(kfTime).toFixed(2)}`;
     if (kfSegEaseEl) {
-      // Last keyframe has no outgoing segment
       const isLast = kfSelected >= kf.length - 1;
       kfSegEaseEl.disabled = isLast;
       const v = cur.e || "inherit";
       kfSegEaseEl.value = isLast ? "inherit" : v;
+      const showBezier = !isLast && v === "bezier";
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !showBezier);
+      if (showBezier) {
+        kfBezierSyncInputs();
+        kfRenderBezier();
+      }
     }
   }
 
@@ -694,7 +845,11 @@
     const span = Math.max(1e-6, b.t - a.t);
     let lt = (t - a.t) / span;
     const segEase = (typeof a.e === "string" ? a.e : easeMode);
-    lt = kfEase(lt, segEase);
+    if (segEase === "bezier" && Array.isArray(a.b) && a.b.length === 4) {
+      lt = cubicBezierYForX(lt, a.b[0], a.b[1], a.b[2], a.b[3]);
+    } else {
+      lt = kfEase(lt, segEase);
+    }
     const lerp = (u, v) => u + (v - u) * lt;
     return { x: lerp(a.x, b.x), y: lerp(a.y, b.y), r: lerp(a.r, b.r), s: Math.max(0.01, lerp(a.s, b.s)) };
   }
@@ -1095,12 +1250,98 @@
     kfSegEaseEl.addEventListener("change", () => {
       if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
       const v = kfSegEaseEl.value || "inherit";
-      if (v === "inherit") delete kf[kfSelected].e;
+      if (v === "inherit") { delete kf[kfSelected].e; delete kf[kfSelected].b; }
       else kf[kfSelected].e = v;
+      // toggle bezier UI
+      const showBezier = v === "bezier";
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !showBezier);
+      if (showBezier) {
+        if (!Array.isArray(kf[kfSelected].b) || kf[kfSelected].b.length !== 4) {
+          kf[kfSelected].b = kfBezierDefault();
+        }
+        kfBezierSyncInputs();
+        kfRenderBezier();
+      }
       kfSyncTextarea();
       kfRenderAll();
       applyLayerForm();
     });
+  }
+
+  // Bezier numeric inputs
+  if (kfBx1El && kfBy1El && kfBx2El && kfBy2El) {
+    const onInput = () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      if (kfSegEaseEl.value !== "bezier") return;
+      kfSetSegBezier(kfBezierFromInputs());
+      kfRenderBezier();
+    };
+    kfBx1El.addEventListener("input", onInput);
+    kfBy1El.addEventListener("input", onInput);
+    kfBx2El.addEventListener("input", onInput);
+    kfBy2El.addEventListener("input", onInput);
+  }
+  if (kfBezierReset) {
+    kfBezierReset.addEventListener("click", () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      if (kfSegEaseEl.value !== "bezier") return;
+      const def = kfBezierDefault();
+      kfBx1El.value = def[0].toFixed(2);
+      kfBy1El.value = def[1].toFixed(2);
+      kfBx2El.value = def[2].toFixed(2);
+      kfBy2El.value = def[3].toFixed(2);
+      kfSetSegBezier(def);
+      kfRenderBezier();
+    });
+  }
+
+  // Bezier canvas interactions
+  if (kfBezierEl) {
+    let drag = 0; // 0 none, 1 first handle, 2 second handle
+    const pad = 0; // full canvas used
+    const toNorm = (cx, cy) => {
+      const x = Math.max(0, Math.min(1, cx / kfBezierEl.width));
+      const y = Math.max(0, Math.min(1, 1 - (cy / kfBezierEl.height)));
+      return [x, y];
+    };
+    const handleAt = (mx, my) => {
+      const b = kfGetSegBezier() || kfBezierDefault();
+      const [x1, y1, x2, y2] = b;
+      const hx1 = x1 * kfBezierEl.width, hy1 = (1 - y1) * kfBezierEl.height;
+      const hx2 = x2 * kfBezierEl.width, hy2 = (1 - y2) * kfBezierEl.height;
+      const d1 = Math.hypot(mx - hx1, my - hy1);
+      const d2 = Math.hypot(mx - hx2, my - hy2);
+      if (d1 < 10 && d1 <= d2) return 1;
+      if (d2 < 10 && d2 < d1) return 2;
+      return 0;
+    };
+    kfBezierEl.addEventListener("mousedown", (e) => {
+      if (kfSegEaseEl.value !== "bezier") return;
+      const rect = kfBezierEl.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      drag = handleAt(mx, my);
+      if (drag) e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!drag) return;
+      const rect = kfBezierEl.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const [nx, ny] = toNorm(mx, my);
+      const b = kfGetSegBezier() || kfBezierDefault();
+      if (drag === 1) { b[0] = nx; b[1] = ny; }
+      else { b[2] = nx; b[3] = ny; }
+      kfSetSegBezier(b);
+      if (kfBx1El && kfBy1El && kfBx2El && kfBy2El) {
+        kfBx1El.value = b[0].toFixed(2);
+        kfBy1El.value = b[1].toFixed(2);
+        kfBx2El.value = b[2].toFixed(2);
+        kfBy2El.value = b[3].toFixed(2);
+      }
+      kfRenderBezier();
+    });
+    window.addEventListener("mouseup", () => { drag = 0; });
   }
 
   // Curves canvas interactions: click to set time
@@ -1245,13 +1486,15 @@
             if (Array.isArray(la.kf)) {
               kf = la.kf.map((p) => {
                 const e = typeof p?.e === "string" ? p.e : undefined;
+                const b = Array.isArray(p?.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
                 return {
                   t: Math.max(0, Math.min(1, parseFloat(p?.t) || 0)),
                   x: Number.isFinite(p?.x) ? p.x : 0,
                   y: Number.isFinite(p?.y) ? p.y : 0,
                   r: Number.isFinite(p?.r) ? p.r : 0,
                   s: Number.isFinite(p?.s) ? Math.max(0.01, p.s) : 1,
-                  ...(e ? { e } : {})
+                  ...(e ? { e } : {}),
+                  ...(b ? { b } : {})
                 };
               }).sort((a, b) => a.t - b.t);
             }
