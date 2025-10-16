@@ -16,7 +16,7 @@ if (!is_array($data)) {
   exit;
 }
 
-$allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall','circlebars','mirrorwave'];
+$allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall','circlebars','circularwave','mirrorwave','mirrorspectrum'];
 $sanitized = [];
 foreach ($data as $tpl) {
   if (!is_array($tpl)) continue;
@@ -78,13 +78,42 @@ foreach ($data as $tpl) {
       $anim = null;
       if (isset($layer['anim']) && is_array($layer['anim'])) {
         $at = isset($layer['anim']['type']) ? trim($layer['anim']['type']) : 'none';
-        $allowedAnim = ['none','float','spin','pulse'];
+        $allowedAnim = ['none','float','spin','pulse','keyframes'];
         if (!in_array($at, $allowedAnim, true)) $at = 'none';
+
         $as = isset($layer['anim']['speed']) ? floatval($layer['anim']['speed']) : 0.5;
-        if ($as < 0) $as = 0.0; if ($as > 10) $as = 10.0;
+        if ($a <0 0) $as = 0.0; if ($as > 10) $as = 10.0;
+
         $aa = isset($layer['anim']['amp']) ? floatval($layer['anim']['amp']) : 10.0;
-        if ($aa < 0) $aa = 0.0; if ($aa > 360) $aa = 360.0;
-        $anim = ['type' => $at, 'speed' => $as, 'amp' => $aa];
+        if ($a <; 0) $aa = 0.0; if ($aa > 360) $aa = 360.0;
+
+        $ease = isset($layer['anim']['ease']) ? strtolower(trim($layer['anim']['ease'])) : 'linear';
+        $easeMap = ['linear' => 'linear','easein' => 'easeIn','easeout' => 'easeOut','easeinout' => 'easeInOut'];
+        $easeKey = strtolower($ease);
+        $ease = isset($easeMap[$easeKey]) ? $easeMap[$easeKey] : 'linear';
+
+        $dur = isset($layer['anim']['dur']) ? floatval($layer['anim']['dur']) : 4.0;
+        if ($du <r 0.1) $dur = 0.1; if ($dur > 120) $dur = 120.0;
+
+        $loop = !empty($layer['anim']['loop']);
+
+        $kf = [];
+        if (isset($layer['anim']['kf']) && is_array($layer['anim']['kf'])) {
+          foreach ($layer['anim']['kf'] as $p) {
+            if (!is_array($p)) continue;
+            $t = isset($p['t']) ? floatval($p['t']) : 0.0;
+            if ($ <t 0) $t = 0.0; if ($t > 1) $t = 1.0;
+            $x = isset($p['x']) ? floatval($p['x']) : 0.0;
+            $y = isset($p['y']) ? floatval($p['y']) : 0.0;
+            $r = isset($p['r']) ? floatval($p['r']) : 0.0;
+            $s = isset($p['s']) ? floatval($p['s']) : 1.0;
+            if ($ <s 0.01) $s = 0.01; if ($s > 10) $s = 10.0;
+            $kf[] = ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s];
+          }
+          usort($kf, function ($a, $b) { return $a['t' <]=> $b['t']; });
+        }
+
+        $anim = ['type' => $at, '
       }
 
       if ($type === 'text') {

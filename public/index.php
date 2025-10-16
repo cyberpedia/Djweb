@@ -120,7 +120,9 @@
             <option value="spectrogram">Spectrogram</option>
             <option value="wavefall">Wavefall</option>
             <option value="circlebars">Circle Bars</option>
+            <option value="circularwave">Circular Wave</option>
             <option value="mirrorwave">Mirror Wave</option>
+            <option value="mirrorspectrum">Mirror Spectrum</option>
           </select>
 
 
@@ -290,7 +292,9 @@
             <option value="spectrogram">Spectrogram</option>
             <option value="wavefall">Wavefall</option>
             <option value="circlebars">Circle Bars</option>
+            <option value="circularwave">Circular Wave</option>
             <option value="mirrorwave">Mirror Wave</option>
+            <option value="mirrorspectrum">Mirror Spectrum</option>
           </select>
 
           <label>Foreground</label>
@@ -389,11 +393,25 @@
                   <option value="float">Float</option>
                   <option value="spin">Spin</option>
                   <option value="pulse">Pulse</option>
+                  <option value="keyframes">Keyframes</option>
                 </select>
                 <label>Speed (Hz)</label>
                 <input type="number" id="layerAnimSpeed" value="0.5" min="0" max="10" step="0.1">
                 <label>Amount</label>
                 <input type="number" id="layerAnimAmp" value="10" min="0" max="360" step="1">
+                <label>Easing</label>
+                <select id="layerAnimEase">
+                  <option value="linear" selected>Linear</option>
+                  <option value="easeIn">Ease In</option>
+                  <option value="easeOut">Ease Out</option>
+                  <option value="easeInOut">Ease In Out</option>
+                </select>
+                <label>Duration (s)</label>
+                <input type="number" id="layerAnimDur" value="4" min="0.1" max="120" step="0.1">
+                <label>Loop</label>
+                <input type="checkbox" id="layerAnimLoop" checked>
+                <label>Keyframes (JSON)</label>
+                <textarea id="layerAnimKf" placeholder='[{"t":0,"x":0,"y":0,"r":0,"s":1},{"t":1,"x":20,"y":-10,"r":45,"s":1.1}]'></textarea>
               </div>
 
               <div class="layer-text-fields">

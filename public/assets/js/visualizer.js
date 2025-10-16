@@ -169,6 +169,42 @@ function startVisualizerLoop(analyser, canvas, options) {
     pulse *= pulseDecay;
   }
 
+  function easeT(t, mode) {
+    t = Math.max(0, Math.min(1, t));
+    if (mode === "easeIn") return t * t;
+    if (mode === "easeOut") return t * (2 - t);
+    if (mode === "easeInOut") {
+      return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    }
+    return t; // linear
+  }
+
+  function sampleKeyframes(anim, nowSec) {
+    const dur = Number.isFinite(anim.dur) && anim.dur > 0.05 ? anim.dur : 4;
+    const loop = !!anim.loop;
+    const ease = typeof anim.ease === "string" ? anim.ease : "linear";
+    const arr = Array.isArray(anim.kf) ? anim.kf.slice().sort((a, b) => (a.t || 0) - (b.t || 0)) : [];
+    if (arr.length < 2) return { tx: 0, ty: 0, rot: 0, scl: 1 };
+    const ph = nowSec / dur;
+    const ft = loop ? (ph - Math.floor(ph)) : Math.max(0, Math.min(1, ph));
+    let i = 0;
+    while (i < arr.length - 1 && ft > (arr[i + 1].t || 0)) i++;
+    const a = arr[i];
+    const b = arr[Math.min(i + 1, arr.length - 1)];
+    const t0 = Math.max(0, Math.min(1, parseFloat(a.t) || 0));
+    const t1 = Math.max(0, Math.min(1, parseFloat(b.t) || 1));
+    const span = Math.max(1e-6, t1 - t0);
+    let lt = (ft - t0) / span;
+    lt = Math.max(0, Math.min(1, lt));
+    const et = easeT(lt, ease);
+    const lerp = (x0, x1) => x0 + (x1 - x0) * et;
+    const tx = lerp(Number.isFinite(a.x) ? a.x : 0, Number.isFinite(b.x) ? b.x : 0);
+    const ty = lerp(Number.isFinite(a.y) ? a.y : 0, Number.isFinite(b.y) ? b.y : 0);
+    const rotDeg = lerp(Number.isFinite(a.r) ? a.r : 0, Number.isFinite(b.r) ? b.r : 0);
+    const scl = lerp(Number.isFinite(a.s) ? a.s : 1, Number.isFinite(b.s) ? b.s : 1);
+    return { tx, ty, rot: rotDeg * Math.PI / 180, scl: Math.max(0.01, scl) };
+  }
+
   function draw() {
     requestAnimationFrame(draw);
     detectBeat();
@@ -347,6 +383,57 @@ function startVisualizerLoop(analyser, canvas, options) {
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
+    } else if (mode === "circularwave") {
+      analyser.getByteTimeDomainData(timeData);
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const baseR = Math.min(w, h) * 0.28;
+      const points = 512;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.lineWidth = Math.max(2, (Math.min(w, h) / 800) * 2);
+      const grad = ctx.createRadialGradient(0, 0, baseR * 0.6, 0, 0, baseR * 1.15);
+      grad.addColorStop(0, fg);
+      grad.addColorStop(1, "#5B8DEF");
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      for (let i = 0; i < points; i++) {
+        const idx = Math.floor((i / points) * bufferLength);
+        const v = (timeData[idx] - 128) / 128;
+        const ang = (i / points) * Math.PI * 2;
+        const r = baseR + v * 70 * scale * (1 + pulse * 0.3);
+        const x = Math.cos(ang) * r;
+        const y = Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (mode === "mirrorspectrum") {
+      analyser.getByteFrequencyData(freqData);
+      const w = canvas.width;
+      const h = canvas.height;
+      const barCount = 96;
+      const step = Math.floor(bufferLength / barCount);
+      const barW = w / barCount;
+      for (let i = 0; i < barCount; i++) {
+        const v = freqData[i * step] / 255;
+        const bh = v * h * 0.35 * scale * (1 + pulse * 0.4);
+        const x = i * barW;
+        // top bars (upwards from center)
+        const gradTop = ctx.createLinearGradient(x, h * 0.5 - bh, x, h * 0.5);
+        gradTop.addColorStop(0, fg);
+        gradTop.addColorStop(1, "#5B8DEF");
+        ctx.fillStyle = gradTop;
+        ctx.fillRect(x + 1, h * 0.5 - bh, barW - 2, bh);
+        // bottom bars (downwards from center)
+        const gradBot = ctx.createLinearGradient(x, h * 0.5, x, h * 0.5 + bh);
+        gradBot.addColorStop(0, fg);
+        gradBot.addColorStop(1, "#5B8DEF");
+        ctx.fillStyle = gradBot;
+        ctx.fillRect(x + 1, h * 0.5, barW - 2, bh);
+      }
     } else if (mode === "particles") {
       analyser.getByteFrequencyData(freqData);
       ctx.fillStyle = bg;
@@ -604,6 +691,9 @@ function startVisualizerLoop(analyser, canvas, options) {
           else if (aType === "pulse") {
             const ampPct = Math.max(0, Math.min(0.5, amp / 100));
             scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          } else if (aType === "keyframes") {
+            const k = sampleKeyframes(anim, nowSec);
+            tx = k.tx; ty = k.ty; rot = k.rot; scl = k.scl;
           }
 
           ctx.translate(cx + tx, cy + ty);
@@ -638,6 +728,9 @@ function startVisualizerLoop(analyser, canvas, options) {
             else if (aType === "pulse") {
               const ampPct = Math.max(0, Math.min(0.5, amp / 100));
               scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+            } else if (aType === "keyframes") {
+              const k = sampleKeyframes(anim, nowSec);
+              tx = k.tx; ty = k.ty; rot = k.rot; scl = k.scl;
             }
 
             ctx.save();
@@ -665,6 +758,9 @@ function startVisualizerLoop(analyser, canvas, options) {
           else if (aType === "pulse") {
             const ampPct = Math.max(0, Math.min(0.5, amp / 100));
             scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          } else if (aType === "keyframes") {
+            const k = sampleKeyframes(anim, nowSec);
+            tx = k.tx; ty = k.ty; rot = k.rot; scl = k.scl;
           }
 
           ctx.save();
@@ -701,6 +797,9 @@ function startVisualizerLoop(analyser, canvas, options) {
           else if (aType === "pulse") {
             const ampPct = Math.max(0, Math.min(0.5, amp / 100));
             scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          } else if (aType === "keyframes") {
+            const k = sampleKeyframes(anim, nowSec);
+            tx = k.tx; ty = k.ty; rot = k.rot; scl = k.scl;
           }
 
           ctx.save();
@@ -750,6 +849,9 @@ function startVisualizerLoop(analyser, canvas, options) {
             else if (aType === "pulse") {
               const ampPct = Math.max(0, Math.min(0.5, amp / 100));
               scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+            } else if (aType === "keyframes") {
+              const k = sampleKeyframes(anim, nowSec);
+              tx = k.tx; ty = k.ty; rot = k.rot; scl = k.scl;
             }
 
             ctx.save();

@@ -71,6 +71,10 @@
   const layerAnimTypeEl = document.getElementById("layerAnimType");
   const layerAnimSpeedEl = document.getElementById("layerAnimSpeed");
   const layerAnimAmpEl = document.getElementById("layerAnimAmp");
+  const layerAnimEaseEl = document.getElementById("layerAnimEase");
+  const layerAnimDurEl = document.getElementById("layerAnimDur");
+  const layerAnimLoopEl = document.getElementById("layerAnimLoop");
+  const layerAnimKfEl = document.getElementById("layerAnimKf");
 
   let templates = [];
   let selectedIdx = -1;
@@ -196,6 +200,15 @@
     layerAnimTypeEl.value = typeof anim.type === "string" ? anim.type : "none";
     layerAnimSpeedEl.value = Number.isFinite(anim.speed) ? anim.speed : 0.5;
     layerAnimAmpEl.value = Number.isFinite(anim.amp) ? anim.amp : 10;
+    layerAnimEaseEl.value = typeof anim.ease === "string" ? anim.ease : "linear";
+    layerAnimDurEl.value = Number.isFinite(anim.dur) ? anim.dur : 4;
+    layerAnimLoopEl.checked = !!anim.loop;
+    try {
+      const kf = Array.isArray(anim.kf) ? anim.kf : [];
+      layerAnimKfEl.value = JSON.stringify(kf, null, 2);
+    } catch {
+      layerAnimKfEl.value = "[]";
+    }
     if (layer.type === "text") {
       layerTextEl.value = layer.text || "";
       layerSizeEl.value = Number.isFinite(layer.size) ? layer.size : 24;
@@ -230,10 +243,27 @@
     const position = layerPositionEl.value;
     const opacity = Math.max(0, Math.min(1, parseFloat(layerOpacityEl.value || "1")));
     const blend = layerBlendEl.value || "normal";
+    let kf = [];
+    try {
+      const arr = JSON.parse(layerAnimKfEl.value || "[]");
+      if (Array.isArray(arr)) {
+        kf = arr.map((p) => ({
+          t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+          x: Number.isFinite(p.x) ? p.x : 0,
+          y: Number.isFinite(p.y) ? p.y : 0,
+          r: Number.isFinite(p.r) ? p.r : 0,
+          s: Number.isFinite(p.s) ? p.s : 1
+        })).sort((a, b) => a.t - b.t);
+      }
+    } catch {}
     const anim = {
       type: layerAnimTypeEl.value || "none",
       speed: parseFloat(layerAnimSpeedEl.value || "0.5"),
-      amp: parseFloat(layerAnimAmpEl.value || "10")
+      amp: parseFloat(layerAnimAmpEl.value || "10"),
+      ease: layerAnimEaseEl.value || "linear",
+      dur: parseFloat(layerAnimDurEl.value || "4"),
+      loop: !!layerAnimLoopEl.checked,
+      kf
     };
     if (type === "text") {
       return { type, position, opacity, blend, anim, text: layerTextEl.value, size: parseInt(layerSizeEl.value || "24", 10) };
@@ -478,6 +508,10 @@
   layerAnimTypeEl.addEventListener("change", applyLayerForm);
   layerAnimSpeedEl.addEventListener("input", applyLayerForm);
   layerAnimAmpEl.addEventListener("input", applyLayerForm);
+  layerAnimEaseEl.addEventListener("change", applyLayerForm);
+  layerAnimDurEl.addEventListener("input", applyLayerForm);
+  layerAnimLoopEl.addEventListener("change", applyLayerForm);
+  layerAnimKfEl.addEventListener("input", applyLayerForm);
   layerTextEl.addEventListener("input", applyLayerForm);
   layerSizeEl.addEventListener("input", applyLayerForm);
   layerLogoUrlEl.addEventListener("input", applyLayerForm);
