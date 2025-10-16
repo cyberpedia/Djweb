@@ -412,6 +412,28 @@
                 <input type="checkbox" id="layerAnimLoop" checked>
                 <label>Keyframes (JSON)</label>
                 <textarea id="layerAnimKf" placeholder='[{"t":0,"x":0,"y":0,"r":0,"s":1},{"t":1,"x":20,"y":-10,"r":45,"s":1.1}]'></textarea>
+
+                <div id="kfEditor" class="kf-editor hidden">
+                  <div class="kf-toolbar">
+                    <button id="kfPlayBtn">Play</button>
+                    <button id="kfStopBtn" class="secondary">Stop</button>
+                    <button id="kfAddBtn">Add Keyframe</button>
+                    <button id="kfDeleteBtn" class="secondary">Delete Keyframe</button>
+                    <span id="kfTimeLabel" class="muted">t=0.00</span>
+                  </div>
+
+                  <canvas id="kfTimeline" width="720" height="60"></canvas>
+
+                  <div class="kf-fields">
+                    <label>t</label><input type="number" id="kfT" min="0" max="1" step="0.01" value="0">
+                    <label>x</label><input type="number" id="kfX" step="1" value="0">
+                    <label>y</label><input type="number" id="kfY" step="1" value="0">
+                    <label>r</label><input type="number" id="kfR" step="1" value="0">
+                    <label>s</label><input type="number" id="kfS" step="0.01" value="1">
+                  </div>
+
+                  <canvas id="kfStage" width="720" height="220"></canvas>
+                </div>
               </div>
 
               <div class="layer-text-fields">

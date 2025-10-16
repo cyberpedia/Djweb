@@ -76,6 +76,31 @@
   const layerAnimLoopEl = document.getElementById("layerAnimLoop");
   const layerAnimKfEl = document.getElementById("layerAnimKf");
 
+  // Keyframe editor elements
+  const kfEditorEl = document.getElementById("kfEditor");
+  const kfTimelineEl = document.getElementById("kfTimeline");
+  const kfStageEl = document.getElementById("kfStage");
+  const kfPlayBtn = document.getElementById("kfPlayBtn");
+  const kfStopBtn = document.getElementById("kfStopBtn");
+  const kfAddBtn = document.getElementById("kfAddBtn");
+  const kfDeleteBtn = document.getElementById("kfDeleteBtn");
+  const kfTimeLabel = document.getElementById("kfTimeLabel");
+  const kfTEl = document.getElementById("kfT");
+  const kfXEl = document.getElementById("kfX");
+  const kfYEl = document.getElementById("kfY");
+  const kfREl = document.getElementById("kfR");
+  const kfSEl = document.getElementById("kfS");
+
+  // Keyframe editor state
+  let kf = [];
+  let kfSelected = -1;
+  let kfPlay = false;
+  let kfPlayStart = 0; // performance.now()
+  let kfPlayDur = 4;   // seconds
+  let kfTime = 0;      // 0..1
+  let kfDragIdx = -1;
+  let kfDragging = false;
+
   let templates = [];
   let selectedIdx = -1;
   let selectedLayerIdx = -1;
@@ -204,11 +229,15 @@
     layerAnimDurEl.value = Number.isFinite(anim.dur) ? anim.dur : 4;
     layerAnimLoopEl.checked = !!anim.loop;
     try {
-      const kf = Array.isArray(anim.kf) ? anim.kf : [];
-      layerAnimKfEl.value = JSON.stringify(kf, null, 2);
+      const kfTemp = Array.isArray(anim.kf) ? anim.kf : [];
+      layerAnimKfEl.value = JSON.stringify(kfTemp, null, 2);
     } catch {
       layerAnimKfEl.value = "[]";
     }
+    // Initialize keyframe editor for this layer
+    kfUpdateVisibility();
+    kfLoadFromTextarea();
+    kfRenderAll();
     if (layer.type === "text") {
       layerTextEl.value = layer.text || "";
       layerSizeEl.value = Number.isFinite(layer.size) ? layer.size : 24;
@@ -532,6 +561,389 @@
   layerBarColorEl.addEventListener("input", applyLayerForm);
   layerBarOrientEl.addEventListener("change", applyLayerForm);
   layerPositionEl.addEventListener("change", applyLayerForm);
+
+  // ----- Keyframe editor helpers -----
+  function kfEase(t, mode) {
+    t = Math.max(0, Math.min(1, t));
+    if (mode === "easeIn") return t * t;
+    if (mode === "easeOut") return t * (2 - t);
+    if (mode === "easeInOut") return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    return t;
+  }
+
+  function kfUpdateVisibility() {
+    const isKF = (layerAnimTypeEl.value || "none") === "keyframes";
+    if (kfEditorEl) kfEditorEl.classList.toggle("hidden", !isKF);
+    if (isKF) {
+      kfLoadFromTextarea();
+      kfRenderAll();
+    }
+  }
+
+  function kfLoadFromTextarea() {
+    try {
+      const arr = JSON.parse(layerAnimKfEl.value || "[]");
+      if (Array.isArray(arr)) {
+        kf = arr.map(p => ({
+          t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+          x: Number.isFinite(p.x) ? p.x : 0,
+          y: Number.isFinite(p.y) ? p.y : 0,
+          r: Number.isFinite(p.r) ? p.r : 0,
+          s: Number.isFinite(p.s) ? Math.max(0.01, p.s) : 1
+        })).sort((a, b) => a.t - b.t);
+      } else {
+        kf = [];
+      }
+    } catch {
+      kf = [];
+    }
+    if (kf.length < 2) {
+      kf = [{ t: 0, x: 0, y: 0, r: 0, s: 1 }, { t: 1, x: 0, y: 0, r: 0, s: 1 }];
+    }
+    kfSelected = 0;
+    kfTime = kf[0].t;
+    kfSyncInputs();
+    kfSyncTextarea();
+  }
+
+  function kfSyncTextarea() {
+    try {
+      layerAnimKfEl.value = JSON.stringify(kf.slice().sort((a, b) => a.t - b.t), null, 2);
+    } catch {}
+  }
+
+  function kfSyncInputs() {
+    const cur = kf[kfSelected] || kf[0];
+    if (!cur) return;
+    kfTEl.value = cur.t.toFixed(2);
+    kfXEl.value = Math.round(cur.x);
+    kfYEl.value = Math.round(cur.y);
+    kfREl.value = Math.round(cur.r);
+    kfSEl.value = (cur.s).toFixed(2);
+    if (kfTimeLabel) kfTimeLabel.textContent = `t=${(kfTime).toFixed(2)}`;
+  }
+
+  function kfSelect(idx) {
+    kfSelected = Math.max(0, Math.min(kf.length - 1, idx));
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfAddAt(t) {
+    const prev = kf.slice().sort((a, b) => a.t - b.t);
+    const ease = layerAnimEaseEl.value || "linear";
+    const samp = kfSample(prev, t, ease);
+    prev.push({ t: t, x: samp.x, y: samp.y, r: samp.r, s: samp.s });
+    kf = prev.sort((a, b) => a.t - b.t);
+    kfSelected = kf.findIndex(p => p.t === t);
+    if (kfSelected < 0) kfSelected = Math.max(0, Math.min(kf.length - 1, Math.floor(kf.length / 2)));
+    kfTime = t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfDeleteSelected() {
+    if (kf.length <= 2) return;
+    if (kfSelected < 0 || kfSelected >= kf.length) return;
+    kf.splice(kfSelected, 1);
+    kfSelected = Math.max(0, Math.min(kf.length - 1, kfSelected));
+    kfTime = kf[kfSelected].t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfSetTime(t) {
+    kfTime = Math.max(0, Math.min(1, t));
+    if (kfTimeLabel) kfTimeLabel.textContent = `t=${kfTime.toFixed(2)}`;
+    kfRenderAll();
+  }
+
+  function kfSample(arr, t, easeMode) {
+    if (!Array.isArray(arr) || arr.length === 0) return { x: 0, y: 0, r: 0, s: 1 };
+    const a0 = arr[0], a1 = arr[arr.length - 1];
+    if (t <= a0.t) return { x: a0.x, y: a0.y, r: a0.r, s: a0.s };
+    if (t >= a1.t) return { x: a1.x, y: a1.y, r: a1.r, s: a1.s };
+    let i = 0;
+    while (i < arr.length - 1 && t > arr[i + 1].t) i++;
+    const a = arr[i], b = arr[Math.min(i + 1, arr.length - 1)];
+    const span = Math.max(1e-6, b.t - a.t);
+    let lt = (t - a.t) / span;
+    lt = kfEase(lt, easeMode);
+    const lerp = (u, v) => u + (v - u) * lt;
+    return { x: lerp(a.x, b.x), y: lerp(a.y, b.y), r: lerp(a.r, b.r), s: Math.max(0.01, lerp(a.s, b.s)) };
+  }
+
+  function kfRenderTimeline() {
+    if (!kfTimelineEl) return;
+    const ctx = kfTimelineEl.getContext("2d");
+    const w = kfTimelineEl.width, h = kfTimelineEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // background
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    // axis
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(8, h / 2);
+    ctx.lineTo(w - 8, h / 2);
+    ctx.stroke();
+    // ticks
+    ctx.fillStyle = "#95a3b3";
+    for (let i = 0; i <= 10; i++) {
+      const x = 8 + (w - 16) * (i / 10);
+      ctx.fillRect(x, h / 2 - 8, 1, 16);
+    }
+    // keyframes
+    for (let i = 0; i < kf.length; i++) {
+      const x = 8 + (w - 16) * kf[i].t;
+      ctx.beginPath();
+      ctx.arc(x, h / 2, i === kfSelected ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = i === kfSelected ? "#00f5d4" : "#5b8def";
+      ctx.fill();
+      ctx.strokeStyle = "#0b0f14";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // playhead
+    const px = 8 + (w - 16) * kfTime;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillRect(px, 0, 1, h);
+  }
+
+  function kfRenderStage() {
+    if (!kfStageEl) return;
+    const ctx = kfStageEl.getContext("2d");
+    const w = kfStageEl.width, h = kfStageEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // bg grid
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < w; x += 24) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = 0; y < h; y += 24) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    // stage center
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+    // sample transform at current time
+    const ease = layerAnimEaseEl.value || "linear";
+    const samp = kfSample(kf, kfTime, ease);
+
+    // draw a proxy rect
+    const rw = 200, rh = 120;
+    const cx = w / 2 + samp.x;
+    const cy = h / 2 + samp.y;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((samp.r * Math.PI) / 180);
+    ctx.scale(samp.s, samp.s);
+    ctx.fillStyle = "rgba(91,141,239,0.15)";
+    ctx.strokeStyle = "#5b8def";
+    ctx.lineWidth = 2;
+    ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+    ctx.strokeRect(-rw / 2, -rh / 2, rw, rh);
+    ctx.restore();
+
+    // keyframe handles
+    for (let i = 0; i < kf.length; i++) {
+      const p = kf[i];
+      const x = w / 2 + p.x;
+      const y = h / 2 + p.y;
+      ctx.beginPath();
+      ctx.arc(x, y, i === kfSelected ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = i === kfSelected ? "#00f5d4" : "#5b8def";
+      ctx.fill();
+      ctx.strokeStyle = "#0b0f14";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function kfRenderAll() {
+    kfRenderTimeline();
+    kfRenderStage();
+  }
+
+  function kfStartPlay() {
+    kfPlayDur = Math.max(0.1, parseFloat(layerAnimDurEl.value || "4") || 4);
+    kfPlay = true;
+    kfPlayStart = performance.now() - kfTime * kfPlayDur * 1000;
+    requestAnimationFrame(kfTick);
+  }
+
+  function kfStopPlay() {
+    kfPlay = false;
+  }
+
+  function kfTick() {
+    if (!kfPlay) return;
+    const now = performance.now();
+    const loop = !!layerAnimLoopEl.checked;
+    const elapsed = (now - kfPlayStart) / 1000;
+    let t = elapsed / kfPlayDur;
+    if (loop) t = t - Math.floor(t);
+    t = Math.max(0, Math.min(1, t));
+    kfSetTime(t);
+    requestAnimationFrame(kfTick);
+  }
+
+  // Timeline interactions
+  if (kfTimelineEl) {
+    kfTimelineEl.addEventListener("mousedown", (e) => {
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      const h = kfTimelineEl.height;
+      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      // check if near a keyframe
+      const idx = kf.findIndex(p => Math.abs((8 + (w - 16) * p.t) - x) < 8);
+      if (idx >= 0) {
+        kfSelect(idx);
+        kfDragIdx = idx;
+        kfDragging = true;
+      } else {
+        kfSetTime(t);
+      }
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!kfDragging || kfDragIdx < 0) return;
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      let t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      // clamp between neighbors
+      const left = kf[kfDragIdx - 1]?.t ?? 0;
+      const right = kf[kfDragIdx + 1]?.t ?? 1;
+      if (kfDragIdx > 0) t = Math.max(left + 0.001, t);
+      if (kfDragIdx < kf.length - 1) t = Math.min(right - 0.001, t);
+      kf[kfDragIdx].t = t;
+      kfTime = t;
+      kfSyncInputs();
+      kfRenderAll();
+    });
+    window.addEventListener("mouseup", () => {
+      if (kfDragging) {
+        kfDragging = false;
+        kfDragIdx = -1;
+        kf.sort((a, b) => a.t - b.t);
+        kfSelected = Math.max(0, kf.findIndex(p => p.t === kfTime));
+        kfSyncTextarea();
+        applyLayerForm();
+      }
+    });
+    kfTimelineEl.addEventListener("dblclick", (e) => {
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      kfAddAt(t);
+    });
+    kfTimelineEl.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (kfSelected >= 0) kfDeleteSelected();
+    });
+  }
+
+  // Stage interactions (drag selected point position)
+  if (kfStageEl) {
+    let stDragging = false;
+    kfStageEl.addEventListener("mousedown", (e) => {
+      const rect = kfStageEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // pick nearest point
+      let idx = -1, best = 9999;
+      for (let i = 0; i < kf.length; i++) {
+        const px = kfStageEl.width / 2 + kf[i].x;
+        const py = kfStageEl.height / 2 + kf[i].y;
+        const d = Math.hypot(px - x, py - y);
+        if (d < best && d < 14) { best = d; idx = i; }
+      }
+      if (idx >= 0) {
+        kfSelect(idx);
+      }
+      stDragging = true;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!stDragging || kfSelected < 0) return;
+      const rect = kfStageEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const relX = x - kfStageEl.width / 2;
+      const relY = y - kfStageEl.height / 2;
+      kf[kfSelected].x = Math.round(relX);
+      kf[kfSelected].y = Math.round(relY);
+      kfSyncInputs();
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+    window.addEventListener("mouseup", () => { stDragging = false; });
+  }
+
+  // Buttons and inputs
+  if (kfPlayBtn) kfPlayBtn.addEventListener("click", () => kfStartPlay());
+  if (kfStopBtn) kfStopBtn.addEventListener("click", () => kfStopPlay());
+  if (kfAddBtn) kfAddBtn.addEventListener("click", () => kfAddAt(kfTime));
+  if (kfDeleteBtn) kfDeleteBtn.addEventListener("click", () => kfDeleteSelected());
+
+  if (kfTEl) kfTEl.addEventListener("input", () => {
+    if (kfSelected < 0) return;
+    let t = Math.max(0, Math.min(1, parseFloat(kfTEl.value || "0") || 0));
+    // clamp to neighbors
+    const left = kf[kfSelected - 1]?.t ?? 0;
+    const right = kf[kfSelected + 1]?.t ?? 1;
+    if (kfSelected > 0) t = Math.max(left + 0.001, t);
+    if (kfSelected < kf.length - 1) t = Math.min(right - 0.001, t);
+    kf[kfSelected].t = t;
+    kfTime = t;
+    kf.sort((a, b) => a.t - b.t);
+    kfSelected = Math.max(0, kf.findIndex(p => p.t === t));
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  });
+
+  const numUpdaters = [
+    [kfXEl, "x"], [kfYEl, "y"], [kfREl, "r"], [kfSEl, "s"]
+  ];
+  numUpdaters.forEach(([el, key]) => {
+    if (!el) return;
+    el.addEventListener("input", () => {
+      if (kfSelected < 0) return;
+      let val = parseFloat(el.value || "0") || 0;
+      if (key === "s") val = Math.max(0.01, val);
+      kf[kfSelected][key] = val;
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  });
+
+  // Keep GUI in sync when user edits JSON directly
+  if (layerAnimKfEl) {
+    layerAnimKfEl.addEventListener("input", () => {
+      kfLoadFromTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  }
+
+  // Toggle editor visibility with anim type
+  layerAnimTypeEl.addEventListener("change", () => {
+    kfUpdateVisibility();
+  });
+
+  // Initialize visibility
+  kfUpdateVisibility();
 
   
 
