@@ -90,6 +90,8 @@
   const kfYEl = document.getElementById("kfY");
   const kfREl = document.getElementById("kfR");
   const kfSEl = document.getElementById("kfS");
+  const kfSegEaseEl = document.getElementById("kfSegEase");
+  const kfCurvesEl = document.getElementById("kfCurves");
 
   // Keyframe editor state
   let kf = [];
@@ -100,6 +102,9 @@
   let kfTime = 0;      // 0..1
   let kfDragIdx = -1;
   let kfDragging = false;
+
+  // Stage preview image cache
+  const stageImgCache = new Map();
 
   let templates = [];
   let selectedIdx = -1;
@@ -276,13 +281,17 @@
     try {
       const arr = JSON.parse(layerAnimKfEl.value || "[]");
       if (Array.isArray(arr)) {
-        kf = arr.map((p) => ({
-          t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
-          x: Number.isFinite(p.x) ? p.x : 0,
-          y: Number.isFinite(p.y) ? p.y : 0,
-          r: Number.isFinite(p.r) ? p.r : 0,
-          s: Number.isFinite(p.s) ? p.s : 1
-        })).sort((a, b) => a.t - b.t);
+        kf = arr.map((p) => {
+          const e = typeof p.e === "string" ? p.e : undefined;
+          return {
+            t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+            x: Number.isFinite(p.x) ? p.x : 0,
+            y: Number.isFinite(p.y) ? p.y : 0,
+            r: Number.isFinite(p.r) ? p.r : 0,
+            s: Number.isFinite(p.s) ? p.s : 1,
+            ...(e ? { e } : {})
+          };
+        }).sort((a, b) => a.t - b.t);
       }
     } catch {}
     const anim = {
@@ -584,13 +593,17 @@
     try {
       const arr = JSON.parse(layerAnimKfEl.value || "[]");
       if (Array.isArray(arr)) {
-        kf = arr.map(p => ({
-          t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
-          x: Number.isFinite(p.x) ? p.x : 0,
-          y: Number.isFinite(p.y) ? p.y : 0,
-          r: Number.isFinite(p.r) ? p.r : 0,
-          s: Number.isFinite(p.s) ? Math.max(0.01, p.s) : 1
-        })).sort((a, b) => a.t - b.t);
+        kf = arr.map(p => {
+          const e = typeof p.e === "string" ? p.e : undefined;
+          return {
+            t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+            x: Number.isFinite(p.x) ? p.x : 0,
+            y: Number.isFinite(p.y) ? p.y : 0,
+            r: Number.isFinite(p.r) ? p.r : 0,
+            s: Number.isFinite(p.s) ? Math.max(0.01, p.s) : 1,
+            ...(e ? { e } : {})
+          };
+        }).sort((a, b) => a.t - b.t);
       } else {
         kf = [];
       }
@@ -621,6 +634,13 @@
     kfREl.value = Math.round(cur.r);
     kfSEl.value = (cur.s).toFixed(2);
     if (kfTimeLabel) kfTimeLabel.textContent = `t=${(kfTime).toFixed(2)}`;
+    if (kfSegEaseEl) {
+      // Last keyframe has no outgoing segment
+      const isLast = kfSelected >= kf.length - 1;
+      kfSegEaseEl.disabled = isLast;
+      const v = cur.e || "inherit";
+      kfSegEaseEl.value = isLast ? "inherit" : v;
+    }
   }
 
   function kfSelect(idx) {
@@ -673,7 +693,8 @@
     const a = arr[i], b = arr[Math.min(i + 1, arr.length - 1)];
     const span = Math.max(1e-6, b.t - a.t);
     let lt = (t - a.t) / span;
-    lt = kfEase(lt, easeMode);
+    const segEase = (typeof a.e === "string" ? a.e : easeMode);
+    lt = kfEase(lt, segEase);
     const lerp = (u, v) => u + (v - u) * lt;
     return { x: lerp(a.x, b.x), y: lerp(a.y, b.y), r: lerp(a.r, b.r), s: Math.max(0.01, lerp(a.s, b.s)) };
   }
@@ -737,19 +758,122 @@
     const ease = layerAnimEaseEl.value || "linear";
     const samp = kfSample(kf, kfTime, ease);
 
-    // draw a proxy rect
-    const rw = 200, rh = 120;
-    const cx = w / 2 + samp.x;
-    const cy = h / 2 + samp.y;
+    // build a pseudo-layer from current form values
+    const type = layerTypeEl.value;
+    const color = layerRectColorEl?.value || "#5b8def";
+    const text = layerTextEl?.value || "Text";
+    const textSize = parseInt(layerSizeEl?.value || "24", 10);
+    const logoUrl = layerLogoUrlEl?.value || "";
+    const logoSize = parseInt(layerLogoSizeEl?.value || "64", 10);
+    const imageUrl = layerImageUrlEl?.value || "";
+    const imageW = parseInt(layerImageWidthEl?.value || "256", 10);
+    const imageH = parseInt(layerImageHeightEl?.value || "256", 10);
+    const rectW = parseInt(layerRectWidthEl?.value || "200", 10);
+    const rectH = parseInt(layerRectHeightEl?.value || "100", 10);
+    const rectR = parseInt(layerRectRadiusEl?.value || "12", 10);
+    const arcR = parseInt(layerRadiusEl?.value || "26", 10);
+    const arcTh = parseInt(layerThicknessEl?.value || "6", 10);
+    const barW = parseInt(layerBarWidthEl?.value || "400", 10);
+    const barH = parseInt(layerBarHeightEl?.value || "20", 10);
+    const barColor = layerBarColorEl?.value || "#00F5D4";
+    const orient = (layerBarOrientEl?.value === "v") ? "v" : "h";
+
+    const cx = Math.round(w / 2 + samp.x);
+    const cy = Math.round(h / 2 + samp.y);
+
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate((samp.r * Math.PI) / 180);
     ctx.scale(samp.s, samp.s);
-    ctx.fillStyle = "rgba(91,141,239,0.15)";
-    ctx.strokeStyle = "#5b8def";
+
     ctx.lineWidth = 2;
-    ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
-    ctx.strokeRect(-rw / 2, -rh / 2, rw, rh);
+
+    if (type === "text") {
+      ctx.font = `${textSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      const grad = ctx.createLinearGradient(-100, -textSize / 2, 100, textSize / 2);
+      grad.addColorStop(0, "#00f5d4");
+      grad.addColorStop(1, "#5b8def");
+      ctx.fillStyle = grad;
+      ctx.fillText(text, 0, 0);
+    } else if (type === "logo" && logoUrl) {
+      let img = stageImgCache.get(logoUrl);
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { stageImgCache.set(logoUrl, img); kfRenderStage(); };
+        img.onerror = () => { stageImgCache.delete(logoUrl); };
+        img.src = logoUrl;
+      }
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, -logoSize / 2, -logoSize / 2, logoSize, logoSize);
+      } else {
+        ctx.fillStyle = "rgba(91,141,239,0.15)";
+        ctx.strokeStyle = "#5b8def";
+        ctx.fillRect(-logoSize / 2, -logoSize / 2, logoSize, logoSize);
+        ctx.strokeRect(-logoSize / 2, -logoSize / 2, logoSize, logoSize);
+      }
+    } else if (type === "image" && imageUrl) {
+      let img = stageImgCache.get(imageUrl);
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { stageImgCache.set(imageUrl, img); kfRenderStage(); };
+        img.onerror = () => { stageImgCache.delete(imageUrl); };
+        img.src = imageUrl;
+      }
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, -imageW / 2, -imageH / 2, imageW, imageH);
+      } else {
+        ctx.fillStyle = "rgba(91,141,239,0.15)";
+        ctx.strokeStyle = "#5b8def";
+        ctx.fillRect(-imageW / 2, -imageH / 2, imageW, imageH);
+        ctx.strokeRect(-imageW / 2, -imageH / 2, imageW, imageH);
+      }
+    } else if (type === "rectangle") {
+      const x = -rectW / 2, y = -rectH / 2, r = Math.max(0, rectR);
+      ctx.fillStyle = color || "#ffffff";
+      if (r <= 0) {
+        ctx.fillRect(x, y, rectW, rectH);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + rectW - r, y);
+        ctx.quadraticCurveTo(x + rectW, y, x + rectW, y + r);
+        ctx.lineTo(x + rectW, y + rectH - r);
+        ctx.quadraticCurveTo(x + rectW, y + rectH, x + rectW - r, y + rectH);
+        ctx.lineTo(x + r, y + rectH);
+        ctx.quadraticCurveTo(x, y + rectH, x, y + rectH - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (type === "progressArc") {
+      ctx.lineWidth = Math.max(1, arcTh);
+      ctx.strokeStyle = "#5b8def";
+      ctx.beginPath();
+      ctx.arc(0, 0, arcR, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (type === "progressBar") {
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(-barW / 2, -barH / 2, barW, barH);
+      ctx.fillStyle = barColor || "#00F5D4";
+      if (orient === "h") {
+        ctx.fillRect(-barW / 2, -barH / 2, Math.max(1, Math.floor(barW * 0.6)), barH);
+      } else {
+        ctx.fillRect(-barW / 2, -barH / 2, barW, Math.max(1, Math.floor(barH * 0.6)));
+      }
+    } else {
+      // fallback proxy rect
+      const rw = 200, rh = 120;
+      ctx.fillStyle = "rgba(91,141,239,0.15)";
+      ctx.strokeStyle = "#5b8def";
+      ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+      ctx.strokeRect(-rw / 2, -rh / 2, rw, rh);
+    }
+
     ctx.restore();
 
     // keyframe handles
@@ -767,8 +891,79 @@
     }
   }
 
+  function kfRenderCurves() {
+    if (!kfCurvesEl) return;
+    const ctx = kfCurvesEl.getContext("2d");
+    const w = kfCurvesEl.width, h = kfCurvesEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // background
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    // axes
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(8, h / 2);
+    ctx.lineTo(w - 8, h / 2);
+    ctx.stroke();
+
+    // Sample curves
+    const ease = layerAnimEaseEl.value || "linear";
+    const N = Math.max(2, Math.floor(w / 3));
+    const xs = new Array(N), ys = new Array(N), rs = new Array(N), ss = new Array(N);
+
+    // Precompute ranges from keyframes to scale curves more meaningfully
+    const minmax = (arr, key) => {
+      let mn = Infinity, mx = -Infinity;
+      for (const p of arr) { const v = p[key]; if (Number.isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; } }
+      if (!isFinite(mn) || !isFinite(mx) || mn === mx) { mn = -1; mx = 1; }
+      return [mn, mx];
+    };
+    const [minX, maxX] = minmax(kf, "x");
+    const [minY, maxY] = minmax(kf, "y");
+    const [minR, maxR] = minmax(kf, "r");
+    const [minS, maxS] = minmax(kf, "s");
+
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      const smp = kfSample(kf, t, ease);
+      xs[i] = smp.x;
+      ys[i] = smp.y;
+      rs[i] = smp.r;
+      ss[i] = smp.s;
+    }
+
+    function drawCurve(vals, mn, mx, color) {
+      const pad = 8;
+      const innerW = w - pad * 2;
+      const innerH = h - pad * 2;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const t = i / (N - 1);
+        const x = pad + innerW * t;
+        const norm = (vals[i] - mn) / Math.max(1e-6, (mx - mn)); // 0..1
+        const y = pad + innerH * (1 - norm);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    drawCurve(xs, minX, maxX, "#00f5d4"); // x
+    drawCurve(ys, minY, maxY, "#5b8def"); // y
+    drawCurve(rs, minR, maxR, "#ffd166"); // r
+    drawCurve(ss, minS, maxS, "#06d6a0"); // s
+
+    // playhead
+    const px = 8 + (w - 16) * kfTime;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillRect(px, 0, 1, h);
+  }
+
   function kfRenderAll() {
     kfRenderTimeline();
+    kfRenderCurves();
     kfRenderStage();
   }
 
@@ -895,6 +1090,29 @@
   if (kfAddBtn) kfAddBtn.addEventListener("click", () => kfAddAt(kfTime));
   if (kfDeleteBtn) kfDeleteBtn.addEventListener("click", () => kfDeleteSelected());
 
+  // Segment ease per keyframe (applies from selected KF to next)
+  if (kfSegEaseEl) {
+    kfSegEaseEl.addEventListener("change", () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      const v = kfSegEaseEl.value || "inherit";
+      if (v === "inherit") delete kf[kfSelected].e;
+      else kf[kfSelected].e = v;
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  }
+
+  // Curves canvas interactions: click to set time
+  if (kfCurvesEl) {
+    kfCurvesEl.addEventListener("mousedown", (e) => {
+      const rect = kfCurvesEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, kfCurvesEl.width - 16)));
+      kfSetTime(t);
+    });
+  }
+
   if (kfTEl) kfTEl.addEventListener("input", () => {
     if (kfSelected < 0) return;
     let t = Math.max(0, Math.min(1, parseFloat(kfTEl.value || "0") || 0));
@@ -991,7 +1209,7 @@
       const text = await f.text();
       const arr = JSON.parse(text);
       if (!Array.isArray(arr)) throw new Error("Invalid JSON");
-      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram","wavefall","circlebars","mirrorwave"];
+      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram","wavefall","circlebars","circularwave","mirrorwave","mirrorspectrum"];
       const validPos = ["top-left","top-right","bottom-left","bottom-right"];
       templates = arr.map((tpl) => {
         const name = typeof tpl.name === "string" ? tpl.name : "Untitled";
@@ -1022,10 +1240,31 @@
             const opacity = Math.max(0, Math.min(1, parseFloat(l?.opacity) || 1));
             const blend = typeof l?.blend === "string" ? l.blend : "normal";
             const la = l && typeof l.anim === "object" ? l.anim : {};
+            // sanitize keyframes if present
+            let kf = [];
+            if (Array.isArray(la.kf)) {
+              kf = la.kf.map((p) => {
+                const e = typeof p?.e === "string" ? p.e : undefined;
+                return {
+                  t: Math.max(0, Math.min(1, parseFloat(p?.t) || 0)),
+                  x: Number.isFinite(p?.x) ? p.x : 0,
+                  y: Number.isFinite(p?.y) ? p.y : 0,
+                  r: Number.isFinite(p?.r) ? p.r : 0,
+                  s: Number.isFinite(p?.s) ? Math.max(0.01, p.s) : 1,
+                  ...(e ? { e } : {})
+                };
+              }).sort((a, b) => a.t - b.t);
+            }
+            const easeVal = typeof la.ease === "string" ? la.ease : "linear";
+            const durVal = Number.isFinite(la.dur) ? Math.max(0.1, Math.min(120, la.dur)) : 4;
             const anim = {
               type: (typeof la.type === "string" ? la.type : "none"),
               speed: Number.isFinite(la.speed) ? la.speed : 0.5,
-              amp: Number.isFinite(la.amp) ? la.amp : 10
+              amp: Number.isFinite(la.amp) ? la.amp : 10,
+              ease: easeVal,
+              dur: durVal,
+              loop: !!la.loop,
+              kf
             };
             if (type === "text") {
               return { type, position, opacity, blend, anim, text: typeof l.text === "string" ? l.text : "", size: Number.isFinite(l.size) ? l.size : 24 };

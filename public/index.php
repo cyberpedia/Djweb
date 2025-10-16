@@ -424,6 +424,20 @@
 
                   <canvas id="kfTimeline" width="720" height="60"></canvas>
 
+                  <div class="kf-segment">
+                    <label>Segment Ease</label>
+                    <select id="kfSegEase">
+                      <option value="inherit" selected>Inherit (global)</option>
+                      <option value="linear">Linear</option>
+                      <option value="easeIn">Ease In</option>
+                      <option value="easeOut">Ease Out</option>
+                      <option value="easeInOut">Ease In Out</option>
+                    </select>
+                    <span class="muted">(applies from this keyframe to the next)</span>
+                  </div>
+
+                  <canvas id="kfCurves" width="720" height="120"></canvas>
+
                   <div class="kf-fields">
                     <label>t</label><input type="number" id="kfT" min="0" max="1" step="0.01" value="0">
                     <label>x</label><input type="number" id="kfX" step="1" value="0">

@@ -182,7 +182,7 @@ function startVisualizerLoop(analyser, canvas, options) {
   function sampleKeyframes(anim, nowSec) {
     const dur = Number.isFinite(anim.dur) && anim.dur > 0.05 ? anim.dur : 4;
     const loop = !!anim.loop;
-    const ease = typeof anim.ease === "string" ? anim.ease : "linear";
+    const easeGlobal = typeof anim.ease === "string" ? anim.ease : "linear";
     const arr = Array.isArray(anim.kf) ? anim.kf.slice().sort((a, b) => (a.t || 0) - (b.t || 0)) : [];
     if (arr.length < 2) return { tx: 0, ty: 0, rot: 0, scl: 1 };
     const ph = nowSec / dur;
@@ -196,7 +196,8 @@ function startVisualizerLoop(analyser, canvas, options) {
     const span = Math.max(1e-6, t1 - t0);
     let lt = (ft - t0) / span;
     lt = Math.max(0, Math.min(1, lt));
-    const et = easeT(lt, ease);
+    const easeSeg = (typeof a.e === "string" ? a.e : easeGlobal);
+    const et = easeT(lt, easeSeg);
     const lerp = (x0, x1) => x0 + (x1 - x0) * et;
     const tx = lerp(Number.isFinite(a.x) ? a.x : 0, Number.isFinite(b.x) ? b.x : 0);
     const ty = lerp(Number.isFinite(a.y) ? a.y : 0, Number.isFinite(b.y) ? b.y : 0);

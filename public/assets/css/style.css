@@ -333,13 +333,17 @@ button.secondary { opacity: 0.85; }
   background: #0f1620;
 }
 .kf-toolbar { display: flex; gap: 8px; align-items: center; }
+.kf-segment { display: flex; gap: 8px; align-items: center; }
+.kf-segment select {
+  background: #0f1620; color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
+}
 .kf-fields {
   display: grid;
   grid-template-columns: repeat(10, minmax(40px, 1fr));
   align-items: center;
   gap: 8px;
 }
-#kfTimeline, #kfStage {
+#kfTimeline, #kfCurves, #kfStage {
   width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -347,4 +351,5 @@ button.secondary { opacity: 0.85; }
   display: block;
 }
 #kfTimeline { height: 60px; }
+#kfCurves { height: 120px; }
 #kfStage { height: 220px; }

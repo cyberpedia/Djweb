@@ -9,7 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
-
 if (!is_array($data)) {
   http_response_code(400);
   echo json_encode(['success' => false, 'error' => 'Invalid JSON']);
@@ -17,9 +16,20 @@ if (!is_array($data)) {
 }
 
 $allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall','circlebars','circularwave','mirrorwave','mirrorspectrum'];
+$validPos = ['top-left','top-right','bottom-left','bottom-right'];
+$validBlend = ['normal','screen','multiply','overlay','add'];
+$validEase = ['linear','easeIn','easeOut','easeInOut'];
+$validAnim = ['none','float','spin','pulse','keyframes'];
+
+$sanitizeColor = function ($hex, $fallback = '#ffffff') {
+  $hex = is_string($hex) ? trim($hex) : '';
+  return preg_match('/^#([A-Fa-f0-9]{6})$/', $hex) ? $hex : $fallback;
+};
+
 $sanitized = [];
 foreach ($data as $tpl) {
   if (!is_array($tpl)) continue;
+
   $name = isset($tpl['name']) ? trim($tpl['name']) : 'Untitled';
   $mode = in_array($tpl['mode'] ?? 'bars', $allowedModes, true) ? $tpl['mode'] : 'bars';
   $fg = isset($tpl['fg']) ? trim($tpl['fg']) : '#00F5D4';
@@ -30,7 +40,6 @@ foreach ($data as $tpl) {
   $progressArc = !empty($tpl['progressArc']);
   $logoUrl = isset($tpl['logoUrl']) ? trim($tpl['logoUrl']) : '';
   $logoSize = isset($tpl['logoSize']) ? intval($tpl['logoSize']) : 64;
-  $validPos = ['top-left','top-right','bottom-left','bottom-right'];
   $logoPosition = in_array($tpl['logoPosition'] ?? 'top-left', $validPos, true) ? $tpl['logoPosition'] : 'top-left';
 
   $colorMap = isset($tpl['colorMap']) ? trim($tpl['colorMap']) : 'gradient';
@@ -52,9 +61,9 @@ foreach ($data as $tpl) {
     foreach ($tpl['colorStops'] as $s) {
       if (!is_array($s)) continue;
       $offset = isset($s['offset']) ? floatval($s['offset']) : 0.0;
-      if ($offset < 0) $offset = 0.0; if ($offset > 1) $offset = 1.0;
-      $color = isset($s['color']) ? trim($s['color']) : '#ffffff';
-      if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#ffffff';
+      if ($offset < 0) $offset = 0.0;
+      if ($offset > 1) $offset = 1.0;
+      $color = $sanitizeColor($s['color'] ?? '#ffffff', '#ffffff');
       $colorStops[] = ['offset' => $offset, 'color' => $color];
     }
     usort($colorStops, function ($a, $b) { return $a['offset'] <=> $b['offset']; });
@@ -69,32 +78,24 @@ foreach ($data as $tpl) {
       $pos = isset($layer['position']) ? trim($layer['position']) : 'top-left';
       if (!in_array($pos, $validPos, true)) $pos = 'top-left';
       $opacity = isset($layer['opacity']) ? floatval($layer['opacity']) : 1.0;
-      if ($opacity < 0) $opacity = 0.0; if ($opacity > 1) $opacity = 1.0;
+      if ($opacity < 0) $opacity = 0.0;
+      if ($opacity > 1) $opacity = 1.0;
       $blend = isset($layer['blend']) ? trim($layer['blend']) : 'normal';
-      $validBlend = ['normal','screen','multiply','overlay','add'];
       if (!in_array($blend, $validBlend, true)) $blend = 'normal';
 
-      // Anim
+      // Animation
       $anim = null;
       if (isset($layer['anim']) && is_array($layer['anim'])) {
         $at = isset($layer['anim']['type']) ? trim($layer['anim']['type']) : 'none';
-        $allowedAnim = ['none','float','spin','pulse','keyframes'];
-        if (!in_array($at, $allowedAnim, true)) $at = 'none';
-
+        if (!in_array($at, $validAnim, true)) $at = 'none';
         $as = isset($layer['anim']['speed']) ? floatval($layer['anim']['speed']) : 0.5;
-        if ($a <0 0) $as = 0.0; if ($as > 10) $as = 10.0;
-
+        if ($as < 0) $as = 0.0; if ($as > 10) $as = 10.0;
         $aa = isset($layer['anim']['amp']) ? floatval($layer['anim']['amp']) : 10.0;
-        if ($a <; 0) $aa = 0.0; if ($aa > 360) $aa = 360.0;
-
-        $ease = isset($layer['anim']['ease']) ? strtolower(trim($layer['anim']['ease'])) : 'linear';
-        $easeMap = ['linear' => 'linear','easein' => 'easeIn','easeout' => 'easeOut','easeinout' => 'easeInOut'];
-        $easeKey = strtolower($ease);
-        $ease = isset($easeMap[$easeKey]) ? $easeMap[$easeKey] : 'linear';
-
+        if ($aa < 0) $aa = 0.0; if ($aa > 360) $aa = 360.0;
+        $ease = isset($layer['anim']['ease']) ? trim($layer['anim']['ease']) : 'linear';
+        if (!in_array($ease, $validEase, true)) $ease = 'linear';
         $dur = isset($layer['anim']['dur']) ? floatval($layer['anim']['dur']) : 4.0;
-        if ($du <r 0.1) $dur = 0.1; if ($dur > 120) $dur = 120.0;
-
+        if ($dur < 0.1) $dur = 0.1; if ($dur > 120) $dur = 120.0;
         $loop = !empty($layer['anim']['loop']);
 
         $kf = [];
@@ -102,18 +103,20 @@ foreach ($data as $tpl) {
           foreach ($layer['anim']['kf'] as $p) {
             if (!is_array($p)) continue;
             $t = isset($p['t']) ? floatval($p['t']) : 0.0;
-            if ($ <t 0) $t = 0.0; if ($t > 1) $t = 1.0;
+            if ($t < 0) $t = 0.0; if ($t > 1) $t = 1.0;
             $x = isset($p['x']) ? floatval($p['x']) : 0.0;
             $y = isset($p['y']) ? floatval($p['y']) : 0.0;
             $r = isset($p['r']) ? floatval($p['r']) : 0.0;
             $s = isset($p['s']) ? floatval($p['s']) : 1.0;
-            if ($ <s 0.01) $s = 0.01; if ($s > 10) $s = 10.0;
-            $kf[] = ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s];
+            if ($s < 0.01) $s = 0.01; if ($s > 10) $s = 10.0;
+            $e = isset($p['e']) ? trim($p['e']) : '';
+            $segEase = in_array($e, $validEase, true) ? $e : null;
+            $kf[] = $segEase ? ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s, 'e' => $segEase] : ['t' => $t, 'x' => $x, 'y' => $y, 'r' => $r, 's' => $s];
           }
-          usort($kf, function ($a, $b) { return $a['t' <]=> $b['t']; });
+          usort($kf, function ($a, $b) { return $a['t'] <=> $b['t']; });
         }
 
-        $anim = ['type' => $at, '
+        $anim = ['type' => $at, 'speed' => $as, 'amp' => $aa, 'ease' => $ease, 'dur' => $dur, 'loop' => $loop, 'kf' => $kf];
       }
 
       if ($type === 'text') {
@@ -128,8 +131,7 @@ foreach ($data as $tpl) {
         $url = isset($layer['url']) ? trim($layer['url']) : '';
         $width = isset($layer['width']) ? intval($layer['width']) : 256;
         $height = isset($layer['height']) ? intval($layer['height']) : 256;
-        $tint = isset($layer['tint']) ? trim($layer['tint']) : '#ffffff';
-        if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $tint)) $tint = '#ffffff';
+        $tint = $sanitizeColor($layer['tint'] ?? '#ffffff', '#ffffff');
         $alpha = isset($layer['alpha']) ? floatval($layer['alpha']) : 0.0;
         if ($alpha < 0) $alpha = 0.0; if ($alpha > 1) $alpha = 1.0;
         $layers[] = ['type' => 'image', 'url' => $url, 'width' => $width, 'height' => $height, 'tint' => $tint, 'alpha' => $alpha, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend, 'anim' => $anim];
@@ -141,16 +143,14 @@ foreach ($data as $tpl) {
         $width = isset($layer['width']) ? intval($layer['width']) : 200;
         $height = isset($layer['height']) ? intval($layer['height']) : 100;
         $radius = isset($layer['radius']) ? intval($layer['radius']) : 12;
-        $color = isset($layer['color']) ? trim($layer['color']) : '#ffffff';
-        if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#ffffff';
+        $color = $sanitizeColor($layer['color'] ?? '#ffffff', '#ffffff');
         $layers[] = ['type' => 'rectangle', 'width' => $width, 'height' => $height, 'radius' => $radius, 'color' => $color, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend, 'anim' => $anim];
       } elseif ($type === 'progressBar') {
         $width = isset($layer['width']) ? intval($layer['width']) : 400;
         $height = isset($layer['height']) ? intval($layer['height']) : 20;
-        $color = isset($layer['color']) ? trim($layer['color']) : '#00F5D4';
-        if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#00F5D4';
+        $color = $sanitizeColor($layer['color'] ?? '#00F5D4', '#00F5D4');
         $orient = isset($layer['orient']) ? trim($layer['orient']) : 'h';
-        if (!in_array($orient, ['h','v'], true)) $orient = 'h';
+        if ($orient !== 'v') $orient = 'h';
         $layers[] = ['type' => 'progressBar', 'width' => $width, 'height' => $height, 'color' => $color, 'orient' => $orient, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend, 'anim' => $anim];
       }
     }
