@@ -4,9 +4,9 @@ Overview
 A lightweight web app that brings core AveePlayer Pro features to the browser with a PHP backend and a modern JavaScript front-end. It supports:
 - Audio playback with playlists
 - 10-band equalizer
-- Live visualizers (bars, radial, waveform, particles, waterfall, spectrogram, wavefall)
+- Live visualizers (bars, radial, waveform, mirror wave, circle bars, particles, waterfall, spectrogram, wavefall)
 - Beat-reactive animation (bars include peak-hold; waveform peak markers option; particle trails and links)
-- Overlays: title, progress arc, logo (position/size), text overlay; multi-layer overlay system in Template Editor (layer opacity + blend modes; rectangle and progress bar layers)
+- Overlays: title, progress arc, logo (position/size), text overlay; multi-layer overlay system in Template Editor (layer opacity + blend modes; rectangle with corner radius, image with tint, progress arc thickness, and progress bar layers)
 - Crossfade playback and gapless scheduling
 - Loudness normalization (RMS and LUFS-approx) with optional server-side loudnorm at export (Off, Single-pass, Two-pass)
 - Visualizer templates (JSON) + in-app Template Editor (GUI), import/export, share link; custom colormaps (color stops)

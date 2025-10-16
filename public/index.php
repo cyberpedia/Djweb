@@ -110,16 +110,18 @@
           <label>Background</label>
           <input type="color" id="bgColor" value="#0B0F14">
 
-          <label>Mo</</label>
-         <<select id="vizMode">
-           <<option value="bars">Ba</</option>
-           <<option value="radial">Radi</</option>
-           <<option value="waveform">Wavefo</</option>
-           <<option value="particles">Particl</</option>
-           <<option value="waterfall">Waterfa</</option>
-           <<option value="spectrogram">Spectrogr</</option>
-           <soption value="wavefall">Wavefa</lloption>
-        </  sel_codeecnewt</>
+          <label>Mode</label>
+          <select id="vizMode">
+            <option value="bars">Bars</option>
+            <option value="radial">Radial</option>
+            <option value="waveform">Waveform</option>
+            <option value="particles">Particles</option>
+            <option value="waterfall">Waterfall</option>
+            <option value="spectrogram">Spectrogram</option>
+            <option value="wavefall">Wavefall</option>
+            <option value="circlebars">Circle Bars</option>
+            <option value="mirrorwave">Mirror Wave</option>
+          </select>
 
 
           <label>Resolution</label>
@@ -287,6 +289,8 @@
             <option value="waterfall">Waterfall</option>
             <option value="spectrogram">Spectrogram</option>
             <option value="wavefall">Wavefall</option>
+            <option value="circlebars">Circle Bars</option>
+            <option value="mirrorwave">Mirror Wave</option>
           </select>
 
           <label>Foreground</label>
@@ -352,6 +356,7 @@
             <div class="layers-actions">
               <button id="layerAddText">Add Text</button>
               <button id="layerAddLogo">Add Logo</button>
+              <button id="layerAddImage">Add Image</button>
               <button id="layerAddProgress">Add Progress Arc</button>
               <button id="layerAddRect">Add Rectangle</button>
               <button id="layerAddBar">Add Progress Bar</button>
@@ -391,9 +396,24 @@
                 <input type="number" id="layerLogoSize" value="64" min="16" max="512">
               </div>
 
+              <div class="layer-image-fields">
+                <label>Image URL</label>
+                <input type="text" id="layerImageUrl" placeholder="/assets/image.png">
+                <label>Width</label>
+                <input type="number" id="layerImageWidth" value="256" min="1" max="4096">
+                <label>Height</label>
+                <input type="number" id="layerImageHeight" value="256" min="1" max="4096">
+                <label>Tint</label>
+                <input type="color" id="layerImageTint" value="#ffffff">
+                <label>Tint Alpha</label>
+                <input type="number" id="layerImageAlpha" value="0" min="0" max="1" step="0.05">
+              </div>
+
               <div class="layer-progress-fields">
                 <label>Radius</label>
                 <input type="number" id="layerRadius" value="26" min="6" max="256">
+                <label>Thickness</label>
+                <input type="number" id="layerThickness" value="6" min="1" max="64">
               </div>
 
               <div class="layer-rect-fields">
@@ -401,6 +421,8 @@
                 <input type="number" id="layerRectWidth" value="200" min="1" max="4096">
                 <label>Height</label>
                 <input type="number" id="layerRectHeight" value="100" min="1" max="4096">
+                <label>Corner Radius</label>
+                <input type="number" id="layerRectRadius" value="12" min="0" max="1024">
                 <label>Color</label>
                 <input type="color" id="layerRectColor" value="#ffffff">
               </div>

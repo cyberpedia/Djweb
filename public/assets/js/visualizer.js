@@ -288,6 +288,64 @@ function startVisualizerLoop(analyser, canvas, options) {
         }
         ctx.restore();
       }
+    } else if (mode === "circlebars") {
+      analyser.getByteFrequencyData(freqData);
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) * 0.28;
+      const barCount = 96;
+      const step = Math.floor(bufferLength / barCount);
+      for (let i = 0; i < barCount; i++) {
+        const v = freqData[i * step] / 255;
+        const ang = (i / barCount) * Math.PI * 2;
+        const len = v * radius * 0.9 * scale * (1 + pulse * 0.4);
+        const x0 = cx + Math.cos(ang) * radius;
+        const y0 = cy + Math.sin(ang) * radius;
+        const x1 = cx + Math.cos(ang) * (radius + len);
+        const y1 = cy + Math.sin(ang) * (radius + len);
+        const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+        grad.addColorStop(0, fg);
+        grad.addColorStop(1, "#5B8DEF");
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = Math.max(2, (Math.min(w, h) / 800) * 3);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+      }
+    } else if (mode === "mirrorwave") {
+      analyser.getByteTimeDomainData(timeData);
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.lineWidth = 2;
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      grad.addColorStop(0, fg);
+      grad.addColorStop(1, "#5B8DEF");
+      ctx.strokeStyle = grad;
+
+      const amp = h * 0.25 * scale * (1 + pulse * 0.2);
+
+      // Top waveform
+      ctx.beginPath();
+      for (let i = 0; i < bufferLength; i++) {
+        const v = (timeData[i] - 128) / 128;
+        const x = (i / (bufferLength - 1)) * w;
+        const y = h * 0.25 + v * amp;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Bottom mirrored waveform
+      ctx.beginPath();
+      for (let i = 0; i < bufferLength; i++) {
+        const v = (timeData[i] - 128) / 128;
+        const x = (i / (bufferLength - 1)) * w;
+        const y = h * 0.75 - v * amp;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     } else if (mode === "particles") {
       analyser.getByteFrequencyData(freqData);
       ctx.fillStyle = bg;
@@ -556,13 +614,14 @@ function startVisualizerLoop(analyser, canvas, options) {
           const info = options.getProgress();
           const prog = info && Number.isFinite(info.progress) ? info.progress : 0;
           const r = Math.max(6, Math.min(256, parseInt(layer.radius || 26, 10)));
+          const thick = Math.max(1, Math.min(64, parseInt(layer.thickness || 6, 10)));
           const p = computePos(pos, canvas.width, canvas.height, r * 2, r * 2, 16);
           const cx = p.x + r;
           const cy = p.y + r;
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
-          ctx.lineWidth = 6;
+          ctx.lineWidth = thick;
           ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -578,14 +637,59 @@ function startVisualizerLoop(analyser, canvas, options) {
         } else if (type === "rectangle") {
           const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 200, 10)));
           const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 100, 10)));
+          const radius = Math.max(0, Math.min(Math.min(width, height) / 2, parseInt(layer.radius || 0, 10)));
           const color = typeof layer.color === "string" ? layer.color : "#ffffff";
           const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
           ctx.fillStyle = color;
-          ctx.fillRect(p.x, p.y, width, height);
+          if (radius <= 0) {
+            ctx.fillRect(p.x, p.y, width, height);
+          } else {
+            const x = p.x, y = p.y, w = width, h = height, r = radius;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+            ctx.fill();
+          }
           ctx.restore();
+        } else if (type === "image" && layer.url) {
+          let img = imageCache.get(layer.url);
+          if (!img) {
+            img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => { imageCache.set(layer.url, img); };
+            img.onerror = () => { imageCache.delete(layer.url); };
+            img.src = layer.url;
+          }
+          if (img && img.complete && img.naturalWidth) {
+            const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 256, 10)));
+            const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 256, 10)));
+            const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.globalCompositeOperation = blend;
+            ctx.drawImage(img, p.x, p.y, width, height);
+            // optional tint
+            const tint = typeof layer.tint === "string" ? layer.tint : null;
+            const alpha = Math.max(0, Math.min(1, parseFloat(layer.alpha ?? 0)));
+            if (tint && alpha > 0) {
+              ctx.globalAlpha = opacity * alpha;
+              ctx.globalCompositeOperation = "source-atop";
+              ctx.fillStyle = tint;
+              ctx.fillRect(p.x, p.y, width, height);
+            }
+            ctx.restore();
+          }
         } else if (type === "progressBar" && typeof options.getProgress === "function") {
           const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 400, 10)));
           const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 20, 10)));

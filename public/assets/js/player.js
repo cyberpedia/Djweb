@@ -58,7 +58,8 @@
   const ffPresetEl = document.getElementById("ffPreset");
   const exportPresetEl = document.getElementById("exportPreset");
   const platformProfileEl = document.getElementById("platformProfile");
-  const applyPlatformPresetEl = document.getElementById("applynorm");
+  const applyPlatformPresetEl = document.getElementById("applyPlatformPreset");
+  const exportLoudnormEl = document.getElementById("exportLoudnorm");
 
   let uploadToServer = false;
 

@@ -309,4 +309,4 @@ button.secondary { opacity: 0.85; }
 #tplLayersList li:last-child { border-bottom: none; }
 #tplLayersList li.active { background: #0e1520; outline: 1px solid var(--accent); }
 .layer-form { display: grid; gap: 8px; }
-.layer-text-fields, .layer-logo-fields, .layer-progress-fields, .layer-rect-fields, .layer-bar-fields { display: grid; gap: 6px; }
+.layer-text-fields, .layer-logo-fields, .layer-progress-fields, .layer-rect-fields, .layer-bar-fields, .layer-image-fields { display: grid; gap: 6px; }
