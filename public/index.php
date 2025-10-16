@@ -446,9 +446,30 @@
                       <label>y2</label><input type="number" id="kfBy2" min="0" max="1" step="0.01" value="1.00">
                       <button id="kfBezierReset" class="secondary">Reset</button>
                     </div>
+                    <div class="kf-presets">
+                      <span class="muted">Presets:</span>
+                      <button id="kfPresetLinear" class="secondary">Linear</button>
+                      <button id="kfPresetEase" class="secondary">Ease</button>
+                      <button id="kfPresetEaseIn" class="secondary">Ease-in</button>
+                      <button id="kfPresetEaseOut" class="secondary">Ease-out</button>
+                      <button id="kfPresetEaseInOut" class="secondary">Ease-in-out</button>
+                    </div>
                   </div>
 
                   <canvas id="kfCurves" width="720" height="120"></canvas>
+
+                  <div class="kf-options">
+                    <label><input type="checkbox" id="kfSnap" checked> Snap to grid</label>
+                    <label>Grid divisions</label>
+                    <input type="number" id="kfGridDiv" value="20" min="2" max="200" step="1">
+
+                    <div class="kf-curves-toggle">
+                      <label><input type="checkbox" id="kfShowX" checked> X</label>
+                      <label><input type="checkbox" id="kfShowY" checked> Y</label>
+                      <label><input type="checkbox" id="kfShowR" checked> R</label>
+                      <label><input type="checkbox" id="kfShowS" checked> S</label>
+                    </div>
+                  </div>
 
                   <div class="kf-fields">
                     <label>t</label><input type="number" id="kfT" min="0" max="1" step="0.01" value="0">

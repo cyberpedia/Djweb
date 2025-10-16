@@ -99,6 +99,19 @@
   const kfBx2El = document.getElementById("kfBx2");
   const kfBy2El = document.getElementById("kfBy2");
   const kfBezierReset = document.getElementById("kfBezierReset");
+  const kfPresetLinear = document.getElementById("kfPresetLinear");
+  const kfPresetEase = document.getElementById("kfPresetEase");
+  const kfPresetEaseIn = document.getElementById("kfPresetEaseIn");
+  const kfPresetEaseOut = document.getElementById("kfPresetEaseOut");
+  const kfPresetEaseInOut = document.getElementById("kfPresetEaseInOut");
+
+  // Options
+  const kfSnapEl = document.getElementById("kfSnap");
+  const kfGridDivEl = document.getElementById("kfGridDiv");
+  const kfShowXEl = document.getElementById("kfShowX");
+  const kfShowYEl = document.getElementById("kfShowY");
+  const kfShowREl = document.getElementById("kfShowR");
+  const kfShowSEl = document.getElementById("kfShowS");
 
   // Keyframe editor state
   let kf = [];
@@ -112,6 +125,12 @@
 
   // Stage preview image cache
   const stageImgCache = new Map();
+
+  // UI options state
+  let kfSnapEnabled = true;
+  let kfGridDiv = 20;
+  let kfShowX = true, kfShowY = true, kfShowR = true, kfShowS = true;
+  const kfSnapEpsBase = 0.015; // seconds (normalized) snapping threshold
 
   let templates = [];
   let selectedIdx = -1;
@@ -290,13 +309,15 @@
       if (Array.isArray(arr)) {
         kf = arr.map((p) => {
           const e = typeof p.e === "string" ? p.e : undefined;
+          const b = Array.isArray(p.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
           return {
             t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
             x: Number.isFinite(p.x) ? p.x : 0,
             y: Number.isFinite(p.y) ? p.y : 0,
             r: Number.isFinite(p.r) ? p.r : 0,
             s: Number.isFinite(p.s) ? p.s : 1,
-            ...(e ? { e } : {})
+            ...(e ? { e } : {}),
+            ...(b ? { b } : {})
           };
         }).sort((a, b) => a.t - b.t);
       }
@@ -741,13 +762,15 @@
       if (Array.isArray(arr)) {
         kf = arr.map(p => {
           const e = typeof p.e === "string" ? p.e : undefined;
+          const b = Array.isArray(p.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
           return {
             t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
             x: Number.isFinite(p.x) ? p.x : 0,
             y: Number.isFinite(p.y) ? p.y : 0,
             r: Number.isFinite(p.r) ? p.r : 0,
             s: Number.isFinite(p.s) ? Math.max(0.01, p.s) : 1,
-            ...(e ? { e } : {})
+            ...(e ? { e } : {}),
+            ...(b ? { b } : {})
           };
         }).sort((a, b) => a.t - b.t);
       } else {
@@ -828,6 +851,28 @@
     applyLayerForm();
   }
 
+  function kfApplySnap(t) {
+    if (!kfSnapEnabled) return Math.max(0, Math.min(1, t));
+    const anchors = [0, 0.25, 0.5, 0.75, 1];
+    const step = (kfGridDiv && kfGridDiv > 1) ? 1 / kfGridDiv : 0;
+    let eps = kfSnapEpsBase;
+    if (step > 0) eps = Math.max(0.005, Math.min(0.5 * step, 0.02));
+    let best = t;
+    let bestDiff = Infinity;
+    // Grid snap
+    if (step > 0) {
+      const nearest = Math.round(t / step) * step;
+      const diff = Math.abs(nearest - t);
+      if (diff < bestDiff && diff <= eps) { best = nearest; bestDiff = diff; }
+    }
+    // Anchor snap
+    for (const a of anchors) {
+      const diff = Math.abs(a - t);
+      if (diff < bestDiff && diff <= eps) { best = a; bestDiff = diff; }
+    }
+    return Math.max(0, Math.min(1, best));
+  }
+
   function kfSetTime(t) {
     kfTime = Math.max(0, Math.min(1, t));
     if (kfTimeLabel) kfTimeLabel.textContent = `t=${kfTime.toFixed(2)}`;
@@ -862,13 +907,42 @@
     // background
     ctx.fillStyle = "#0b0f14";
     ctx.fillRect(0, 0, w, h);
-    // axis
+    // axis baseline
     ctx.strokeStyle = "#1f2a37";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(8, h / 2);
     ctx.lineTo(w - 8, h / 2);
     ctx.stroke();
+
+    // optional grid
+    if (kfSnapEnabled) {
+      // grid divisions
+      const step = (kfGridDiv && kfGridDiv > 1) ? 1 / kfGridDiv : 0;
+      if (step > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = 1;
+        for (let t = 0; t <= 1 + 1e-9; t += step) {
+          const x = 8 + (w - 16) * t;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      }
+      // major anchors
+      const anchors = [0, 0.25, 0.5, 0.75, 1];
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.lineWidth = 1.5;
+      anchors.forEach((t) => {
+        const x = 8 + (w - 16) * t;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      });
+    }
+
     // ticks
     ctx.fillStyle = "#95a3b3";
     for (let i = 0; i <= 10; i++) {
@@ -1105,10 +1179,10 @@
       ctx.stroke();
     }
 
-    drawCurve(xs, minX, maxX, "#00f5d4"); // x
-    drawCurve(ys, minY, maxY, "#5b8def"); // y
-    drawCurve(rs, minR, maxR, "#ffd166"); // r
-    drawCurve(ss, minS, maxS, "#06d6a0"); // s
+    if (kfShowX) drawCurve(xs, minX, maxX, "#00f5d4"); // x
+    if (kfShowY) drawCurve(ys, minY, maxY, "#5b8def"); // y
+    if (kfShowR) drawCurve(rs, minR, maxR, "#ffd166"); // r
+    if (kfShowS) drawCurve(ss, minS, maxS, "#06d6a0"); // s
 
     // playhead
     const px = 8 + (w - 16) * kfTime;
@@ -1152,7 +1226,8 @@
       const x = e.clientX - rect.left;
       const w = kfTimelineEl.width;
       const h = kfTimelineEl.height;
-      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const t = kfApplySnap(ts);
       // check if near a keyframe
       const idx = kf.findIndex(p => Math.abs((8 + (w - 16) * p.t) - x) < 8);
       if (idx >= 0) {
@@ -1169,6 +1244,7 @@
       const x = e.clientX - rect.left;
       const w = kfTimelineEl.width;
       let t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      t = kfApplySnap(t);
       // clamp between neighbors
       const left = kf[kfDragIdx - 1]?.t ?? 0;
       const right = kf[kfDragIdx + 1]?.t ?? 1;
@@ -1193,7 +1269,8 @@
       const rect = kfTimelineEl.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const w = kfTimelineEl.width;
-      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const t = kfApplySnap(ts);
       kfAddAt(t);
     });
     kfTimelineEl.addEventListener("contextmenu", (e) => {
@@ -1244,6 +1321,55 @@
   if (kfStopBtn) kfStopBtn.addEventListener("click", () => kfStopPlay());
   if (kfAddBtn) kfAddBtn.addEventListener("click", () => kfAddAt(kfTime));
   if (kfDeleteBtn) kfDeleteBtn.addEventListener("click", () => kfDeleteSelected());
+
+  // Options
+  if (kfSnapEl) kfSnapEl.addEventListener("change", () => { kfSnapEnabled = !!kfSnapEl.checked; kfRenderTimeline(); });
+  if (kfGridDivEl) kfGridDivEl.addEventListener("input", () => {
+    let v = parseInt(kfGridDivEl.value || "20", 10);
+    if (!Number.isFinite(v)) v = 20;
+    v = Math.max(2, Math.min(200, v));
+    kfGridDiv = v;
+    kfRenderTimeline();
+  });
+  const curveToggle = (el, key) => el && el.addEventListener("change", () => { 
+    if (key === "x") kfShowX = !!el.checked;
+    if (key === "y") kfShowY = !!el.checked;
+    if (key === "r") kfShowR = !!el.checked;
+    if (key === "s") kfShowS = !!el.checked;
+    kfRenderCurves();
+  });
+  curveToggle(kfShowXEl, "x");
+  curveToggle(kfShowYEl, "y");
+  curveToggle(kfShowREl, "r");
+  curveToggle(kfShowSEl, "s");
+
+  // Bezier presets
+  function applyPresetBezier(b) {
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    kf[kfSelected].e = "bezier";
+    kf[kfSelected].b = b.slice(0, 4);
+    if (kfSegEaseEl) kfSegEaseEl.value = "bezier";
+    if (kfBezierBox) kfBezierBox.classList.remove("hidden");
+    kfBezierSyncInputs();
+    kfRenderBezier();
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  }
+  if (kfPresetLinear) kfPresetLinear.addEventListener("click", () => {
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    delete kf[kfSelected].b;
+    kf[kfSelected].e = "linear";
+    if (kfSegEaseEl) kfSegEaseEl.value = "linear";
+    if (kfBezierBox) kfBezierBox.classList.add("hidden");
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  });
+  if (kfPresetEase) kfPresetEase.addEventListener("click", () => applyPresetBezier([0.25, 0.1, 0.25, 1.0]));
+  if (kfPresetEaseIn) kfPresetEaseIn.addEventListener("click", () => applyPresetBezier([0.42, 0.0, 1.0, 1.0]));
+  if (kfPresetEaseOut) kfPresetEaseOut.addEventListener("click", () => applyPresetBezier([0.0, 0.0, 0.58, 1.0]));
+  if (kfPresetEaseInOut) kfPresetEaseInOut.addEventListener("click", () => applyPresetBezier([0.42, 0.0, 0.58, 1.0]));
 
   // Segment ease per keyframe (applies from selected KF to next)
   if (kfSegEaseEl) {
@@ -1349,7 +1475,8 @@
     kfCurvesEl.addEventListener("mousedown", (e) => {
       const rect = kfCurvesEl.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, kfCurvesEl.width - 16)));
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, kfCurvesEl.width - 16)));
+      const t = kfApplySnap(ts);
       kfSetTime(t);
     });
   }
@@ -1357,6 +1484,7 @@
   if (kfTEl) kfTEl.addEventListener("input", () => {
     if (kfSelected < 0) return;
     let t = Math.max(0, Math.min(1, parseFloat(kfTEl.value || "0") || 0));
+    t = kfApplySnap(t);
     // clamp to neighbors
     const left = kf[kfSelected - 1]?.t ?? 0;
     const right = kf[kfSelected + 1]?.t ?? 1;
@@ -1403,6 +1531,17 @@
 
   // Initialize visibility
   kfUpdateVisibility();
+
+  // Initialize options state
+  if (kfSnapEl) kfSnapEnabled = !!kfSnapEl.checked;
+  if (kfGridDivEl) {
+    let v = parseInt(kfGridDivEl.value || "20", 10);
+    kfGridDiv = Number.isFinite(v) ? Math.max(2, Math.min(200, v)) : 20;
+  }
+  if (kfShowXEl) kfShowX = !!kfShowXEl.checked;
+  if (kfShowYEl) kfShowY = !!kfShowYEl.checked;
+  if (kfShowREl) kfShowR = !!kfShowREl.checked;
+  if (kfShowSEl) kfShowS = !!kfShowSEl.checked;
 
   
 

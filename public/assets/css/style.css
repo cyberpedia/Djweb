@@ -333,40 +333,17 @@ button.secondary { opacity: 0.85; }
   background: #0f1620;
 }
 .kf-toolbar { display: flex; gap: 8px; align-items: center; }
-.kf-segment { display: flex; gap: 8px; align-items: center; }
-.kf-segment select {
-  background: #0f1620; color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
-}
-.kf-bezier {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 8px;
-  align-items: center;
-}
-.kf-bezier-fields {
-  display: grid;
-  grid-template-columns: repeat(9, minmax(40px, 1fr));
-  gap: 8px;
-  align-items: center;
-}
-.kf-bezier-fields input[type=number] {
-  background: #0f1620; color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
-}
-#kfBezier {
-  width: 100%;
-  height: auto;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #0b0f14;
-  display: block;
-}
+.kf-presets { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.kf-options { display: grid; grid-template-columns: repeat(8, minmax(40px, 1fr)); gap: 8px; align-items: center; margin-top: 8px; }
+.kf-curves-toggle { display: flex; gap: 12px; align-items: center; grid-column: 1 / -1; }
+
 .kf-fields {
   display: grid;
   grid-template-columns: repeat(10, minmax(40px, 1fr));
   align-items: center;
   gap: 8px;
 }
-#kfTimeline, #kfCurves, #kfStage {
+#kfTimeline, #kfStage, #kfCurves {
   width: 100%;
   border-radius: 10px;
   border: 1px solid var(--border);

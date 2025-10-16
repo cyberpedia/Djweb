@@ -10,7 +10,7 @@ A lightweight web app that brings core AveePlayer Pro features to the browser wi
 - Crossfade playback and gapless scheduling
 - Loudness normalization (RMS and LUFS-approx) with optional server-side loudnorm at export (Off, Single-pass, Two-pass)
 - Visualizer templates (JSON) + in-app Template Editor (GUI), import/export, share link; custom colormaps (color stops)
-- Keyframe Editor GUI for per-layer animations: timeline markers, per-segment easing overrides (including custom cubic-bezier with draggable handles), parameter curves (x/y/r/s), play/stop preview, drag-to-edit t/x/y, numeric fields for r/s, and live layer preview
+- Keyframe Editor GUI for per-layer animations: timeline markers, per-segment easing overrides (including custom cubic-bezier with draggable handles and presets), parameter curves (x/y/r/s) with show/hide toggles, snap-to-grid timeline (configurable divisions) and anchor snapping, play/stop preview, drag-to-edit t/x/y, numeric fields for r/s, and live layer preview
 - Resolution presets (720p/1080p/4K) and platform profiles (YouTube/Instagram/TikTok) with optional safe area guides overlay (preview only)
 - Recording/exporting visualizer + audio to WebM (client-side) with optional server MP4 transcoding using FFmpeg
 - Export presets (High/Medium/Low) and manual CRF/bitrate/preset control; platform-aware presets (YouTube
