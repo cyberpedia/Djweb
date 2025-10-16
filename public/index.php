@@ -179,6 +179,9 @@
           <label>Particle Links</label>
           <input type="checkbox" id="particleLinks">
 
+          <label>Wave Peaks</label>
+          <input type="checkbox" id="wavePeaks">
+
           <label>Safe Area Guides</label>
           <input type="checkbox" id="safeGuides">
 
@@ -228,6 +231,9 @@
             <option value="instagram">Instagram Portrait (1080x1350, 30fps)</option>
             <option value="tiktok">TikTok Portrait (1080x1920, 30fps)</option>
           </select>
+
+          <label>Apply Platform Preset</label>
+          <input type="checkbox" id="applyPlatformPreset" checked>
 
           <label>Normalize on export</label>
           <select id="exportLoudnorm">
@@ -347,6 +353,8 @@
               <button id="layerAddText">Add Text</button>
               <button id="layerAddLogo">Add Logo</button>
               <button id="layerAddProgress">Add Progress Arc</button>
+              <button id="layerAddRect">Add Rectangle</button>
+              <button id="layerAddBar">Add Progress Bar</button>
               <button id="layerUp" class="secondary">Up</button>
               <button id="layerDown" class="secondary">Down</button>
               <button id="layerRemove" class="secondary">Remove</button>
@@ -356,6 +364,18 @@
             <div class="layer-form">
               <label>Type</label>
               <input type="text" id="layerType" disabled>
+
+              <label>Opacity</label>
+              <input type="number" id="layerOpacity" value="1.0" min="0" max="1" step="0.05">
+
+              <label>Blend</label>
+              <select id="layerBlend">
+                <option value="normal" selected>Normal</option>
+                <option value="screen">Screen</option>
+                <option value="multiply">Multiply</option>
+                <option value="overlay">Overlay</option>
+                <option value="add">Add</option>
+              </select>
 
               <div class="layer-text-fields">
                 <label>Text</label>
@@ -374,6 +394,29 @@
               <div class="layer-progress-fields">
                 <label>Radius</label>
                 <input type="number" id="layerRadius" value="26" min="6" max="256">
+              </div>
+
+              <div class="layer-rect-fields">
+                <label>Width</label>
+                <input type="number" id="layerRectWidth" value="200" min="1" max="4096">
+                <label>Height</label>
+                <input type="number" id="layerRectHeight" value="100" min="1" max="4096">
+                <label>Color</label>
+                <input type="color" id="layerRectColor" value="#ffffff">
+              </div>
+
+              <div class="layer-bar-fields">
+                <label>Width</label>
+                <input type="number" id="layerBarWidth" value="400" min="1" max="4096">
+                <label>Height</label>
+                <input type="number" id="layerBarHeight" value="20" min="1" max="4096">
+                <label>Color</label>
+                <input type="color" id="layerBarColor" value="#00F5D4">
+                <label>Orientation</label>
+                <select id="layerBarOrient">
+                  <option value="h" selected>Horizontal</option>
+                  <option value="v">Vertical</option>
+                </select>
               </div>
 
               <label>Position</label>

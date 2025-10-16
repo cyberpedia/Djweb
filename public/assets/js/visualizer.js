@@ -268,6 +268,26 @@ function startVisualizerLoop(analyser, canvas, options) {
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
+
+      if (options.wavePeaks) {
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        const stride = 4;
+        const thresh = 0.6;
+        for (let i = 1; i < bufferLength - 1; i += stride) {
+          const v0 = (timeData[i - 1] - 128) / 128;
+          const v1 = (timeData[i] - 128) / 128;
+          const v2 = (timeData[i + 1] - 128) / 128;
+          if (v1 > v0 && v1 >= v2 && Math.abs(v1) > thresh) {
+            const x = (i / (bufferLength - 1)) * w;
+            const y = h / 2 + v1 * amp;
+            ctx.beginPath();
+            ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
     } else if (mode === "particles") {
       analyser.getByteFrequencyData(freqData);
       ctx.fillStyle = bg;
@@ -487,12 +507,24 @@ function startVisualizerLoop(analyser, canvas, options) {
 
     // Layers rendering
     if (Array.isArray(options.layers)) {
+      const mapBlend = (b) => {
+        if (b === "add") return "lighter";
+        const allowed = ["normal","screen","multiply","overlay","lighter","source-over"];
+        if (b === "normal") return "source-over";
+        if (allowed.includes(b)) return b;
+        return "source-over";
+      };
       for (const layer of options.layers) {
         const type = layer.type;
         const pos = layer.position || "top-left";
+        const opacity = Math.max(0, Math.min(1, parseFloat(layer.opacity ?? 1)));
+        const blend = mapBlend(layer.blend || "normal");
+
         if (type === "text" && layer.text) {
           const size = Math.max(12, Math.min(128, parseInt(layer.size || 24, 10)));
           ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.globalCompositeOperation = blend;
           ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
           const metrics = ctx.measureText(layer.text);
           const p = computePos(pos, canvas.width, canvas.height, metrics.width, size, 12);
@@ -515,7 +547,8 @@ function startVisualizerLoop(analyser, canvas, options) {
             const size = Math.max(16, Math.min(512, parseInt(layer.size || 64, 10)));
             const p = computePos(pos, canvas.width, canvas.height, size, size, 16);
             ctx.save();
-            ctx.globalAlpha = 0.9;
+            ctx.globalAlpha = opacity;
+            ctx.globalCompositeOperation = blend;
             ctx.drawImage(img, p.x, p.y, size, size);
             ctx.restore();
           }
@@ -527,6 +560,8 @@ function startVisualizerLoop(analyser, canvas, options) {
           const cx = p.x + r;
           const cy = p.y + r;
           ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.globalCompositeOperation = blend;
           ctx.lineWidth = 6;
           ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.beginPath();
@@ -539,6 +574,52 @@ function startVisualizerLoop(analyser, canvas, options) {
           ctx.beginPath();
           ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, prog)));
           ctx.stroke();
+          ctx.restore();
+        } else if (type === "rectangle") {
+          const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 200, 10)));
+          const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 100, 10)));
+          const color = typeof layer.color === "string" ? layer.color : "#ffffff";
+          const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.globalCompositeOperation = blend;
+          ctx.fillStyle = color;
+          ctx.fillRect(p.x, p.y, width, height);
+          ctx.restore();
+        } else if (type === "progressBar" && typeof options.getProgress === "function") {
+          const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 400, 10)));
+          const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 20, 10)));
+          const color = typeof layer.color === "string" ? layer.color : "#00F5D4";
+          const orient = (layer.orient === "v") ? "v" : "h";
+          const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          const info = options.getProgress();
+          const prog = Math.max(0, Math.min(1, info && Number.isFinite(info.progress) ? info.progress : 0));
+
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.globalCompositeOperation = blend;
+
+          // background
+          ctx.fillStyle = "rgba(255,255,255,0.12)";
+          ctx.fillRect(p.x, p.y, width, height);
+
+          // foreground
+          if (orient === "h") {
+            const wv = Math.max(0, Math.min(width, Math.round(width * prog)));
+            const grad = ctx.createLinearGradient(p.x, p.y, p.x + wv, p.y + height);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, "#5B8DEF");
+            ctx.fillStyle = grad;
+            ctx.fillRect(p.x, p.y, wv, height);
+          } else {
+            const hv = Math.max(0, Math.min(height, Math.round(height * prog)));
+            const gy = p.y + (height - hv);
+            const grad = ctx.createLinearGradient(p.x, gy, p.x + width, p.y + height);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, "#5B8DEF");
+            ctx.fillStyle = grad;
+            ctx.fillRect(p.x, gy, width, hv);
+          }
           ctx.restore();
         }
       }

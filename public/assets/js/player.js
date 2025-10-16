@@ -39,6 +39,7 @@
   const colorMapEl = document.getElementById("colorMap");
   const particleTrailsEl = document.getElementById("particleTrails");
   const particleLinksEl = document.getElementById("particleLinks");
+  const wavePeaksEl = document.getElementById("wavePeaks");
   const safeGuidesEl = document.getElementById("safeGuides");
   const textOverlayTextEl = document.getElementById("textOverlayText");
   const textOverlaySizeEl = document.getElementById("textOverlaySize");
@@ -57,7 +58,7 @@
   const ffPresetEl = document.getElementById("ffPreset");
   const exportPresetEl = document.getElementById("exportPreset");
   const platformProfileEl = document.getElementById("platformProfile");
-  const exportLoudnormEl = document.getElementById("exportLoudnorm");
+  const applyPlatformPresetEl = document.getElementById("applynorm");
 
   let uploadToServer = false;
 
@@ -163,6 +164,7 @@
     colorStops: [],
     particleTrails: particleTrailsEl.checked,
     particleLinks: !!(particleLinksEl && particleLinksEl.checked),
+    wavePeaks: !!(wavePeaksEl && wavePeaksEl.checked),
     layers: [],
     textOverlay: {
       text: textOverlayTextEl.value,
@@ -499,6 +501,7 @@
   colorMapEl.addEventListener("change", () => (vizOptions.colorMap = colorMapEl.value));
   particleTrailsEl.addEventListener("change", () => (vizOptions.particleTrails = particleTrailsEl.checked));
   if (particleLinksEl) particleLinksEl.addEventListener("change", () => (vizOptions.particleLinks = particleLinksEl.checked));
+  if (wavePeaksEl) wavePeaksEl.addEventListener("change", () => (vizOptions.wavePeaks = wavePeaksEl.checked));
   if (safeGuidesEl) safeGuidesEl.addEventListener("change", () => {
     if (!vizGuides) return;
     vizGuides.style.display = safeGuidesEl.checked ? "block" : "none";
@@ -616,6 +619,24 @@
       updateGuidesCanvasSize();
     }
     frameRateEl.value = fr;
+
+    // Apply platform export preset if toggled
+    if (applyPlatformPresetEl && applyPlatformPresetEl.checked) {
+      if (prof === "youtube") {
+        crfEl.value = 18;
+        audioBitrateEl.value = 192;
+        ffPresetEl.value = "veryfast";
+      } else if (prof === "instagram") {
+        crfEl.value = 20;
+        audioBitrateEl.value = 192;
+        ffPresetEl.value = "veryfast";
+      } else if (prof === "tiktok") {
+        crfEl.value = 24;
+        audioBitrateEl.value = 128;
+        ffPresetEl.value = "superfast";
+      }
+    }
+
     drawGuides();
   });
 

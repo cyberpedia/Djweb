@@ -68,17 +68,37 @@ foreach ($data as $tpl) {
       $type = isset($layer['type']) ? trim($layer['type']) : '';
       $pos = isset($layer['position']) ? trim($layer['position']) : 'top-left';
       if (!in_array($pos, $validPos, true)) $pos = 'top-left';
+      $opacity = isset($layer['opacity']) ? floatval($layer['opacity']) : 1.0;
+      if ($opacity < 0) $opacity = 0.0; if ($opacity > 1) $opacity = 1.0;
+      $blend = isset($layer['blend']) ? trim($layer['blend']) : 'normal';
+      $validBlend = ['normal','screen','multiply','overlay','add'];
+      if (!in_array($blend, $validBlend, true)) $blend = 'normal';
+
       if ($type === 'text') {
         $text = isset($layer['text']) ? trim($layer['text']) : '';
         $size = isset($layer['size']) ? intval($layer['size']) : 24;
-        $layers[] = ['type' => 'text', 'text' => $text, 'size' => $size, 'position' => $pos];
+        $layers[] = ['type' => 'text', 'text' => $text, 'size' => $size, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend];
       } elseif ($type === 'logo') {
         $url = isset($layer['url']) ? trim($layer['url']) : '';
         $size = isset($layer['size']) ? intval($layer['size']) : 64;
-        $layers[] = ['type' => 'logo', 'url' => $url, 'size' => $size, 'position' => $pos];
+        $layers[] = ['type' => 'logo', 'url' => $url, 'size' => $size, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend];
       } elseif ($type === 'progressArc') {
         $radius = isset($layer['radius']) ? intval($layer['radius']) : 26;
-        $layers[] = ['type' => 'progressArc', 'radius' => $radius, 'position' => $pos];
+        $layers[] = ['type' => 'progressArc', 'radius' => $radius, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend];
+      } elseif ($type === 'rectangle') {
+        $width = isset($layer['width']) ? intval($layer['width']) : 200;
+        $height = isset($layer['height']) ? intval($layer['height']) : 100;
+        $color = isset($layer['color']) ? trim($layer['color']) : '#ffffff';
+        if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#ffffff';
+        $layers[] = ['type' => 'rectangle', 'width' => $width, 'height' => $height, 'color' => $color, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend];
+      } elseif ($type === 'progressBar') {
+        $width = isset($layer['width']) ? intval($layer['width']) : 400;
+        $height = isset($layer['height']) ? intval($layer['height']) : 20;
+        $color = isset($layer['color']) ? trim($layer['color']) : '#00F5D4';
+        if (!preg_match('/^#([A-Fa-f0-9]{6})$/', $color)) $color = '#00F5D4';
+        $orient = isset($layer['orient']) ? trim($layer['orient']) : 'h';
+        if (!in_array($orient, ['h','v'], true)) $orient = 'h';
+        $layers[] = ['type' => 'progressBar', 'width' => $width, 'height' => $height, 'color' => $color, 'orient' => $orient, 'position' => $pos, 'opacity' => $opacity, 'blend' => $blend];
       }
     }
   }
