@@ -172,6 +172,7 @@ function startVisualizerLoop(analyser, canvas, options) {
   function draw() {
     requestAnimationFrame(draw);
     detectBeat();
+    const nowSec = performance.now() * 0.001;
 
     const {
       fg = "#00F5D4",
@@ -577,6 +578,10 @@ function startVisualizerLoop(analyser, canvas, options) {
         const pos = layer.position || "top-left";
         const opacity = Math.max(0, Math.min(1, parseFloat(layer.opacity ?? 1)));
         const blend = mapBlend(layer.blend || "normal");
+        const anim = layer.anim || {};
+        const sp = Number.isFinite(anim.speed) ? anim.speed : 0.5;
+        const amp = Number.isFinite(anim.amp) ? anim.amp : 10;
+        const aType = typeof anim.type === "string" ? anim.type : "none";
 
         if (type === "text" && layer.text) {
           const size = Math.max(12, Math.min(128, parseInt(layer.size || 24, 10)));
@@ -584,13 +589,32 @@ function startVisualizerLoop(analyser, canvas, options) {
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
           ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+          ctx.textBaseline = "top";
           const metrics = ctx.measureText(layer.text);
-          const p = computePos(pos, canvas.width, canvas.height, metrics.width, size, 12);
-          const gradText = ctx.createLinearGradient(p.x, p.y, p.x + metrics.width, p.y + size);
+          const w = metrics.width;
+          const h = size;
+          const base = computePos(pos, canvas.width, canvas.height, w, h, 12);
+          const cx = base.x + w / 2;
+          const cy = base.y + h / 2;
+
+          // anim transform
+          let tx = 0, ty = 0, rot = 0, scl = 1;
+          if (aType === "float") { tx = Math.cos(2 * Math.PI * sp * nowSec) * amp * 0.4; ty = Math.sin(2 * Math.PI * sp * nowSec) * amp; }
+          else if (aType === "spin") { rot = 2 * Math.PI * sp * nowSec; }
+          else if (aType === "pulse") {
+            const ampPct = Math.max(0, Math.min(0.5, amp / 100));
+            scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          }
+
+          ctx.translate(cx + tx, cy + ty);
+          if (rot) ctx.rotate(rot);
+          if (scl !== 1) ctx.scale(scl, scl);
+
+          const gradText = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
           gradText.addColorStop(0, fg);
           gradText.addColorStop(1, "#5B8DEF");
           ctx.fillStyle = gradText;
-          ctx.fillText(layer.text, p.x, p.y);
+          ctx.fillText(layer.text, -w / 2, -h / 2);
           ctx.restore();
         } else if (type === "logo" && layer.url) {
           let img = imageCache.get(layer.url);
@@ -603,11 +627,26 @@ function startVisualizerLoop(analyser, canvas, options) {
           }
           if (img && img.complete && img.naturalWidth) {
             const size = Math.max(16, Math.min(512, parseInt(layer.size || 64, 10)));
-            const p = computePos(pos, canvas.width, canvas.height, size, size, 16);
+            const w = size, h = size;
+            const base = computePos(pos, canvas.width, canvas.height, w, h, 16);
+            const cx = base.x + w / 2;
+            const cy = base.y + h / 2;
+
+            let tx = 0, ty = 0, rot = 0, scl = 1;
+            if (aType === "float") { tx = Math.cos(2 * Math.PI * sp * nowSec) * amp * 0.4; ty = Math.sin(2 * Math.PI * sp * nowSec) * amp; }
+            else if (aType === "spin") { rot = 2 * Math.PI * sp * nowSec; }
+            else if (aType === "pulse") {
+              const ampPct = Math.max(0, Math.min(0.5, amp / 100));
+              scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+            }
+
             ctx.save();
             ctx.globalAlpha = opacity;
             ctx.globalCompositeOperation = blend;
-            ctx.drawImage(img, p.x, p.y, size, size);
+            ctx.translate(cx + tx, cy + ty);
+            if (rot) ctx.rotate(rot);
+            if (scl !== 1) ctx.scale(scl, scl);
+            ctx.drawImage(img, -w / 2, -h / 2, w, h);
             ctx.restore();
           }
         } else if (type === "progressArc" && typeof options.getProgress === "function") {
@@ -615,23 +654,36 @@ function startVisualizerLoop(analyser, canvas, options) {
           const prog = info && Number.isFinite(info.progress) ? info.progress : 0;
           const r = Math.max(6, Math.min(256, parseInt(layer.radius || 26, 10)));
           const thick = Math.max(1, Math.min(64, parseInt(layer.thickness || 6, 10)));
-          const p = computePos(pos, canvas.width, canvas.height, r * 2, r * 2, 16);
-          const cx = p.x + r;
-          const cy = p.y + r;
+          const w = r * 2, h = r * 2;
+          const base = computePos(pos, canvas.width, canvas.height, w, h, 16);
+          const cx0 = base.x + r;
+          const cy0 = base.y + r;
+
+          let tx = 0, ty = 0, rot = 0, scl = 1;
+          if (aType === "float") { tx = Math.cos(2 * Math.PI * sp * nowSec) * amp * 0.4; ty = Math.sin(2 * Math.PI * sp * nowSec) * amp; }
+          else if (aType === "spin") { rot = 2 * Math.PI * sp * nowSec; }
+          else if (aType === "pulse") {
+            const ampPct = Math.max(0, Math.min(0.5, amp / 100));
+            scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          }
+
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
+          ctx.translate(cx0 + tx, cy0 + ty);
+          if (rot) ctx.rotate(rot);
+          if (scl !== 1) ctx.scale(scl, scl);
           ctx.lineWidth = thick;
           ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.beginPath();
-          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
           ctx.stroke();
-          const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+          const grad = ctx.createLinearGradient(-r, -r, r, r);
           grad.addColorStop(0, fg);
           grad.addColorStop(1, "#5B8DEF");
           ctx.strokeStyle = grad;
           ctx.beginPath();
-          ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, prog)));
+          ctx.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, prog)));
           ctx.stroke();
           ctx.restore();
         } else if (type === "rectangle") {
@@ -639,15 +691,29 @@ function startVisualizerLoop(analyser, canvas, options) {
           const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 100, 10)));
           const radius = Math.max(0, Math.min(Math.min(width, height) / 2, parseInt(layer.radius || 0, 10)));
           const color = typeof layer.color === "string" ? layer.color : "#ffffff";
-          const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          const base = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          const cx0 = base.x + width / 2;
+          const cy0 = base.y + height / 2;
+
+          let tx = 0, ty = 0, rot = 0, scl = 1;
+          if (aType === "float") { tx = Math.cos(2 * Math.PI * sp * nowSec) * amp * 0.4; ty = Math.sin(2 * Math.PI * sp * nowSec) * amp; }
+          else if (aType === "spin") { rot = 2 * Math.PI * sp * nowSec; }
+          else if (aType === "pulse") {
+            const ampPct = Math.max(0, Math.min(0.5, amp / 100));
+            scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+          }
+
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
+          ctx.translate(cx0 + tx, cy0 + ty);
+          if (rot) ctx.rotate(rot);
+          if (scl !== 1) ctx.scale(scl, scl);
           ctx.fillStyle = color;
-          if (radius <= 0) {
-            ctx.fillRect(p.x, p.y, width, height);
+          const x = -width / 2, y = -height / 2, w = width, h = height, r = radius;
+          if (r <= 0) {
+            ctx.fillRect(x, y, w, h);
           } else {
-            const x = p.x, y = p.y, w = width, h = height, r = radius;
             ctx.beginPath();
             ctx.moveTo(x + r, y);
             ctx.lineTo(x + w - r, y);
@@ -674,19 +740,32 @@ function startVisualizerLoop(analyser, canvas, options) {
           if (img && img.complete && img.naturalWidth) {
             const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 256, 10)));
             const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 256, 10)));
-            const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+            const base = computePos(pos, canvas.width, canvas.height, width, height, 16);
+            const cx0 = base.x + width / 2;
+            const cy0 = base.y + height / 2;
+
+            let tx = 0, ty = 0, rot = 0, scl = 1;
+            if (aType === "float") { tx = Math.cos(2 * Math.PI * sp * nowSec) * amp * 0.4; ty = Math.sin(2 * Math.PI * sp * nowSec) * amp; }
+            else if (aType === "spin") { rot = 2 * Math.PI * sp * nowSec; }
+            else if (aType === "pulse") {
+              const ampPct = Math.max(0, Math.min(0.5, amp / 100));
+              scl = 1 + ( (Math.sin(2 * Math.PI * sp * nowSec) * 0.5 + 0.5) * 0.4 + pulse * 0.6 ) * ampPct;
+            }
+
             ctx.save();
             ctx.globalAlpha = opacity;
             ctx.globalCompositeOperation = blend;
-            ctx.drawImage(img, p.x, p.y, width, height);
-            // optional tint
+            ctx.translate(cx0 + tx, cy0 + ty);
+            if (rot) ctx.rotate(rot);
+            if (scl !== 1) ctx.scale(scl, scl);
+            ctx.drawImage(img, -width / 2, -height / 2, width, height);
             const tint = typeof layer.tint === "string" ? layer.tint : null;
             const alpha = Math.max(0, Math.min(1, parseFloat(layer.alpha ?? 0)));
             if (tint && alpha > 0) {
               ctx.globalAlpha = opacity * alpha;
               ctx.globalCompositeOperation = "source-atop";
               ctx.fillStyle = tint;
-              ctx.fillRect(p.x, p.y, width, height);
+              ctx.fillRect(-width / 2, -height / 2, width, height);
             }
             ctx.restore();
           }
@@ -695,35 +774,40 @@ function startVisualizerLoop(analyser, canvas, options) {
           const height = Math.max(1, Math.min(canvas.height, parseInt(layer.height || 20, 10)));
           const color = typeof layer.color === "string" ? layer.color : "#00F5D4";
           const orient = (layer.orient === "v") ? "v" : "h";
-          const p = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          const base = computePos(pos, canvas.width, canvas.height, width, height, 16);
+          const cx0 = base.x + width / 2;
+          const cy0 = base.y + height / 2;
           const info = options.getProgress();
           const prog = Math.max(0, Math.min(1, info && Number.isFinite(info.progress) ? info.progress : 0));
 
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.globalCompositeOperation = blend;
+          ctx.translate(cx0, cy0);
 
           // background
           ctx.fillStyle = "rgba(255,255,255,0.12)";
-          ctx.fillRect(p.x, p.y, width, height);
+          ctx.fillRect(-width / 2, -height / 2, width, height);
 
           // foreground
           if (orient === "h") {
             const wv = Math.max(0, Math.min(width, Math.round(width * prog)));
-            const grad = ctx.createLinearGradient(p.x, p.y, p.x + wv, p.y + height);
+            const grad = ctx.createLinearGradient(-width / 2, -height / 2, -width / 2 + wv, -height / 2 + height);
             grad.addColorStop(0, color);
             grad.addColorStop(1, "#5B8DEF");
             ctx.fillStyle = grad;
-            ctx.fillRect(p.x, p.y, wv, height);
+            ctx.fillRect(-width / 2, -height / 2, wv, height);
           } else {
             const hv = Math.max(0, Math.min(height, Math.round(height * prog)));
-            const gy = p.y + (height - hv);
-            const grad = ctx.createLinearGradient(p.x, gy, p.x + width, p.y + height);
+            const grad = ctx.createLinearGradient(-width / 2, height / 2 - hv, -width / 2 + width, height / 2);
             grad.addColorStop(0, color);
             grad.addColorStop(1, "#5B8DEF");
             ctx.fillStyle = grad;
-            ctx.fillRect(p.x, gy, width, hv);
+            ctx.fillRect(-width / 2, height / 2 - hv, width, hv);
           }
+          ctx.restore();
+        }
+      }
           ctx.restore();
         }
       }

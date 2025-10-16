@@ -382,6 +382,20 @@
                 <option value="add">Add</option>
               </select>
 
+              <div class="layer-anim-fields">
+                <label>Animation</label>
+                <select id="layerAnimType">
+                  <option value="none" selected>None</option>
+                  <option value="float">Float</option>
+                  <option value="spin">Spin</option>
+                  <option value="pulse">Pulse</option>
+                </select>
+                <label>Speed (Hz)</label>
+                <input type="number" id="layerAnimSpeed" value="0.5" min="0" max="10" step="0.1">
+                <label>Amount</label>
+                <input type="number" id="layerAnimAmp" value="10" min="0" max="360" step="1">
+              </div>
+
               <div class="layer-text-fields">
                 <label>Text</label>
                 <input type="text" id="layerText" placeholder="Sample text">

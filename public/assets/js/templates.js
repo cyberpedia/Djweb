@@ -68,6 +68,9 @@
   const layerBarColorEl = document.getElementById("layerBarColor");
   const layerBarOrientEl = document.getElementById("layerBarOrient");
   const layerPositionEl = document.getElementById("layerPosition");
+  const layerAnimTypeEl = document.getElementById("layerAnimType");
+  const layerAnimSpeedEl = document.getElementById("layerAnimSpeed");
+  const layerAnimAmpEl = document.getElementById("layerAnimAmp");
 
   let templates = [];
   let selectedIdx = -1;
@@ -189,6 +192,10 @@
     layerPositionEl.value = layer.position || "top-left";
     layerOpacityEl.value = Number.isFinite(layer.opacity) ? layer.opacity : 1.0;
     layerBlendEl.value = typeof layer.blend === "string" ? layer.blend : "normal";
+    const anim = layer.anim || {};
+    layerAnimTypeEl.value = typeof anim.type === "string" ? anim.type : "none";
+    layerAnimSpeedEl.value = Number.isFinite(anim.speed) ? anim.speed : 0.5;
+    layerAnimAmpEl.value = Number.isFinite(anim.amp) ? anim.amp : 10;
     if (layer.type === "text") {
       layerTextEl.value = layer.text || "";
       layerSizeEl.value = Number.isFinite(layer.size) ? layer.size : 24;
@@ -223,15 +230,20 @@
     const position = layerPositionEl.value;
     const opacity = Math.max(0, Math.min(1, parseFloat(layerOpacityEl.value || "1")));
     const blend = layerBlendEl.value || "normal";
+    const anim = {
+      type: layerAnimTypeEl.value || "none",
+      speed: parseFloat(layerAnimSpeedEl.value || "0.5"),
+      amp: parseFloat(layerAnimAmpEl.value || "10")
+    };
     if (type === "text") {
-      return { type, position, opacity, blend, text: layerTextEl.value, size: parseInt(layerSizeEl.value || "24", 10) };
+      return { type, position, opacity, blend, anim, text: layerTextEl.value, size: parseInt(layerSizeEl.value || "24", 10) };
     }
     if (type === "logo") {
-      return { type, position, opacity, blend, url: layerLogoUrlEl.value.trim(), size: parseInt(layerLogoSizeEl.value || "64", 10) };
+      return { type, position, opacity, blend, anim, url: layerLogoUrlEl.value.trim(), size: parseInt(layerLogoSizeEl.value || "64", 10) };
     }
     if (type === "image") {
       return {
-        type, position, opacity, blend,
+        type, position, opacity, blend, anim,
         url: layerImageUrlEl.value.trim(),
         width: parseInt(layerImageWidthEl.value || "256", 10),
         height: parseInt(layerImageHeightEl.value || "256", 10),
@@ -240,13 +252,13 @@
       };
     }
     if (type === "progressArc") {
-      return { type, position, opacity, blend, radius: parseInt(layerRadiusEl.value || "26", 10), thickness: parseInt(layerThicknessEl.value || "6", 10) };
+      return { type, position, opacity, blend, anim, radius: parseInt(layerRadiusEl.value || "26", 10), thickness: parseInt(layerThicknessEl.value || "6", 10) };
     }
     if (type === "rectangle") {
-      return { type, position, opacity, blend, width: parseInt(layerRectWidthEl.value || "200", 10), height: parseInt(layerRectHeightEl.value || "100", 10), radius: parseInt(layerRectRadiusEl.value || "12", 10), color: layerRectColorEl.value || "#ffffff" };
+      return { type, position, opacity, blend, anim, width: parseInt(layerRectWidthEl.value || "200", 10), height: parseInt(layerRectHeightEl.value || "100", 10), radius: parseInt(layerRectRadiusEl.value || "12", 10), color: layerRectColorEl.value || "#ffffff" };
     }
     if (type === "progressBar") {
-      return { type, position, opacity, blend, width: parseInt(layerBarWidthEl.value || "400", 10), height: parseInt(layerBarHeightEl.value || "20", 10), color: layerBarColorEl.value || "#00F5D4", orient: layerBarOrientEl.value || "h" };
+      return { type, position, opacity, blend, anim, width: parseInt(layerBarWidthEl.value || "400", 10), height: parseInt(layerBarHeightEl.value || "20", 10), color: layerBarColorEl.value || "#00F5D4", orient: layerBarOrientEl.value || "h" };
     }
     return null;
   }
@@ -263,13 +275,14 @@
   function addLayer(type) {
     if (selectedIdx < 0) return;
     const layers = getLayers();
+    let base = { anim: { type: "none", speed: 0.5, amp: 10 } };
     let layer = null;
-    if (type === "text") layer = { type: "text", text: "Sample", size: 24, position: "bottom-left", opacity: 1, blend: "normal" };
-    else if (type === "logo") layer = { type: "logo", url: "", size: 64, position: "top-left", opacity: 1, blend: "normal" };
-    else if (type === "image") layer = { type: "image", url: "", width: 256, height: 256, tint: "#ffffff", alpha: 0, position: "top-left", opacity: 1, blend: "normal" };
-    else if (type === "progressArc") layer = { type: "progressArc", radius: 26, thickness: 6, position: "top-right", opacity: 1, blend: "normal" };
-    else if (type === "rectangle") layer = { type: "rectangle", width: 200, height: 100, radius: 12, color: "#ffffff", position: "top-left", opacity: 0.5, blend: "overlay" };
-    else if (type === "progressBar") layer = { type: "progressBar", width: 400, height: 20, color: "#00F5D4", orient: "h", position: "bottom-left", opacity: 1, blend: "normal" };
+    if (type === "text") layer = { ...base, type: "text", text: "Sample", size: 24, position: "bottom-left", opacity: 1, blend: "normal" };
+    else if (type === "logo") layer = { ...base, type: "logo", url: "", size: 64, position: "top-left", opacity: 1, blend: "normal" };
+    else if (type === "image") layer = { ...base, type: "image", url: "", width: 256, height: 256, tint: "#ffffff", alpha: 0, position: "top-left", opacity: 1, blend: "normal" };
+    else if (type === "progressArc") layer = { ...base, type: "progressArc", radius: 26, thickness: 6, position: "top-right", opacity: 1, blend: "normal" };
+    else if (type === "rectangle") layer = { ...base, type: "rectangle", width: 200, height: 100, radius: 12, color: "#ffffff", position: "top-left", opacity: 0.5, blend: "overlay" };
+    else if (type === "progressBar") layer = { ...base, type: "progressBar", width: 400, height: 20, color: "#00F5D4", orient: "h", position: "bottom-left", opacity: 1, blend: "normal" };
     if (!layer) return;
     layers.push(layer);
     selectedLayerIdx = layers.length - 1;
@@ -448,6 +461,44 @@
     if (wrap) wrap.style.display = tplColorMapEl.value === "custom" ? "grid" : "none";
   })();
 
+  // Layers controls
+  layerAddTextBtn.addEventListener("click", () => addLayer("text"));
+  layerAddLogoBtn.addEventListener("click", () => addLayer("logo"));
+  layerAddImageBtn.addEventListener("click", () => addLayer("image"));
+  layerAddProgressBtn.addEventListener("click", () => addLayer("progressArc"));
+  layerAddRectBtn.addEventListener("click", () => addLayer("rectangle"));
+  layerAddBarBtn.addEventListener("click", () => addLayer("progressBar"));
+  layerUpBtn.addEventListener("click", () => moveLayer(-1));
+  layerDownBtn.addEventListener("click", () => moveLayer(1));
+  layerRemoveBtn.addEventListener("click", () => removeLayer());
+
+  // Layer form live updates
+  layerOpacityEl.addEventListener("input", applyLayerForm);
+  layerBlendEl.addEventListener("change", applyLayerForm);
+  layerAnimTypeEl.addEventListener("change", applyLayerForm);
+  layerAnimSpeedEl.addEventListener("input", applyLayerForm);
+  layerAnimAmpEl.addEventListener("input", applyLayerForm);
+  layerTextEl.addEventListener("input", applyLayerForm);
+  layerSizeEl.addEventListener("input", applyLayerForm);
+  layerLogoUrlEl.addEventListener("input", applyLayerForm);
+  layerLogoSizeEl.addEventListener("input", applyLayerForm);
+  layerRadiusEl.addEventListener("input", applyLayerForm);
+  if (layerThicknessEl) layerThicknessEl.addEventListener("input", applyLayerForm);
+  layerRectWidthEl.addEventListener("input", applyLayerForm);
+  layerRectHeightEl.addEventListener("input", applyLayerForm);
+  if (layerRectRadiusEl) layerRectRadiusEl.addEventListener("input", applyLayerForm);
+  layerRectColorEl.addEventListener("input", applyLayerForm);
+  if (layerImageUrlEl) layerImageUrlEl.addEventListener("input", applyLayerForm);
+  if (layerImageWidthEl) layerImageWidthEl.addEventListener("input", applyLayerForm);
+  if (layerImageHeightEl) layerImageHeightEl.addEventListener("input", applyLayerForm);
+  if (layerImageTintEl) layerImageTintEl.addEventListener("input", applyLayerForm);
+  if (layerImageAlphaEl) layerImageAlphaEl.addEventListener("input", applyLayerForm);
+  layerBarWidthEl.addEventListener("input", applyLayerForm);
+  layerBarHeightEl.addEventListener("input", applyLayerForm);
+  layerBarColorEl.addEventListener("input", applyLayerForm);
+  layerBarOrientEl.addEventListener("change", applyLayerForm);
+  layerPositionEl.addEventListener("change", applyLayerForm);
+
   
 
   tplExportBtn.addEventListener("click", () => {
@@ -524,13 +575,19 @@
             const position = validPos.includes(l?.position) ? l.position : "top-left";
             const opacity = Math.max(0, Math.min(1, parseFloat(l?.opacity) || 1));
             const blend = typeof l?.blend === "string" ? l.blend : "normal";
+            const la = l && typeof l.anim === "object" ? l.anim : {};
+            const anim = {
+              type: (typeof la.type === "string" ? la.type : "none"),
+              speed: Number.isFinite(la.speed) ? la.speed : 0.5,
+              amp: Number.isFinite(la.amp) ? la.amp : 10
+            };
             if (type === "text") {
-              return { type, position, opacity, blend, text: typeof l.text === "string" ? l.text : "", size: Number.isFinite(l.size) ? l.size : 24 };
+              return { type, position, opacity, blend, anim, text: typeof l.text === "string" ? l.text : "", size: Number.isFinite(l.size) ? l.size : 24 };
             } else if (type === "logo") {
-              return { type, position, opacity, blend, url: typeof l.url === "string" ? l.url : "", size: Number.isFinite(l.size) ? l.size : 64 };
+              return { type, position, opacity, blend, anim, url: typeof l.url === "string" ? l.url : "", size: Number.isFinite(l.size) ? l.size : 64 };
             } else if (type === "image") {
               return {
-                type, position, opacity, blend,
+                type, position, opacity, blend, anim,
                 url: typeof l.url === "string" ? l.url : "",
                 width: Number.isFinite(l.width) ? l.width : 256,
                 height: Number.isFinite(l.height) ? l.height : 256,
@@ -538,11 +595,11 @@
                 alpha: Number.isFinite(l.alpha) ? Math.max(0, Math.min(1, l.alpha)) : 0
               };
             } else if (type === "progressArc") {
-              return { type, position, opacity, blend, radius: Number.isFinite(l.radius) ? l.radius : 26, thickness: Number.isFinite(l.thickness) ? l.thickness : 6 };
+              return { type, position, opacity, blend, anim, radius: Number.isFinite(l.radius) ? l.radius : 26, thickness: Number.isFinite(l.thickness) ? l.thickness : 6 };
             } else if (type === "rectangle") {
-              return { type, position, opacity, blend, width: Number.isFinite(l.width) ? l.width : 200, height: Number.isFinite(l.height) ? l.height : 100, radius: Number.isFinite(l.radius) ? l.radius : 12, color: typeof l.color === "string" ? l.color : "#ffffff" };
+              return { type, position, opacity, blend, anim, width: Number.isFinite(l.width) ? l.width : 200, height: Number.isFinite(l.height) ? l.height : 100, radius: Number.isFinite(l.radius) ? l.radius : 12, color: typeof l.color === "string" ? l.color : "#ffffff" };
             } else if (type === "progressBar") {
-              return { type, position, opacity, blend, width: Number.isFinite(l.width) ? l.width : 400, height: Number.isFinite(l.height) ? l.height : 20, color: typeof l.color === "string" ? l.color : "#00F5D4", orient: (l.orient === "v") ? "v" : "h" };
+              return { type, position, opacity, blend, anim, width: Number.isFinite(l.width) ? l.width : 400, height: Number.isFinite(l.height) ? l.height : 20, color: typeof l.color === "string" ? l.color : "#00F5D4", orient: (l.orient === "v") ? "v" : "h" };
             }
             return null;
           }).filter(Boolean);
