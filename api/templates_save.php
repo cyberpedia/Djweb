@@ -18,7 +18,7 @@ if (!is_array($data)) {
 $allowedModes = ['bars','radial','waveform','particles','waterfall','spectrogram','wavefall','circlebars','circularwave','mirrorwave','mirrorspectrum'];
 $validPos = ['top-left','top-right','bottom-left','bottom-right'];
 $validBlend = ['normal','screen','multiply','overlay','add'];
-$validEase = ['linear','easeIn','easeOut','easeInOut','bezier'];
+$validEase = ['linear','easeIn','easeOut','easeInOut','bezier','step'];
 $validAnim = ['none','float','spin','pulse','keyframes'];
 
 $sanitizeColor = function ($hex, $fallback = '#ffffff') {

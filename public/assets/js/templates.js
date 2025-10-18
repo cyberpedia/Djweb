@@ -115,13 +115,17 @@
 
   // Keyframe editor state
   let kf = [];
-  let kfSelected = -1;
+  let kfSelected = -1;         // primary selected index
+  let kfSel = new Set();       // Set of selected keyframe objects
+  let kfSelectedObj = null;    // primary selected object
   let kfPlay = false;
   let kfPlayStart = 0; // performance.now()
   let kfPlayDur = 4;   // seconds
   let kfTime = 0;      // 0..1
   let kfDragIdx = -1;
   let kfDragging = false;
+  let kfDragGroup = false;
+  let kfDragOrig = null;       // Map of object -> original t, for group drag
 
   // Stage preview image cache
   const stageImgCache = new Map();
@@ -783,6 +787,8 @@
       kf = [{ t: 0, x: 0, y: 0, r: 0, s: 1 }, { t: 1, x: 0, y: 0, r: 0, s: 1 }];
     }
     kfSelected = 0;
+    kfSelectedObj = kf[0];
+    kfSel = new Set([kf[0]]);
     kfTime = kf[0].t;
     kfSyncInputs();
     kfSyncTextarea();
@@ -817,11 +823,62 @@
     }
   }
 
-  function kfSelect(idx) {
+  function kfClearSelection() {
+    kfSel.clear();
+  }
+
+  function kfSelectOnly(idx) {
     kfSelected = Math.max(0, Math.min(kf.length - 1, idx));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
     kfTime = kf[kfSelected].t;
     kfSyncInputs();
     kfRenderAll();
+  }
+
+  function kfToggleSelect(idx) {
+    const obj = kf[idx];
+    if (!obj) return;
+    if (kfSel.has(obj)) {
+      if (kfSel.size > 1) {
+        kfSel.delete(obj);
+        if (kfSelected === idx) {
+          // set primary to any remaining
+          const first = Array.from(kfSel)[0];
+          kfSelected = kf.findIndex(p => p === first);
+          kfSelectedObj = first;
+        }
+      } else {
+        // keep at least one selected; do nothing
+        return;
+      }
+    } else {
+      kfSel.add(obj);
+      kfSelected = idx;
+      kfSelectedObj = obj;
+    }
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfSelectRange(toIdx) {
+    if (kfSelected < 0) {
+      kfSelectOnly(Math.max(0, Math.min(kf.length - 1, toIdx)));
+      return;
+    }
+    const a = Math.min(kfSelected, toIdx);
+    const b = Math.max(kfSelected, toIdx);
+    kfSel = new Set(kf.slice(a, b + 1));
+    kfSelected = toIdx;
+    kfSelectedObj = kf[toIdx];
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfSelect(idx) {
+    kfSelectOnly(idx);
   }
 
   function kfAddAt(t) {
@@ -844,9 +901,60 @@
     if (kfSelected < 0 || kfSelected >= kf.length) return;
     kf.splice(kfSelected, 1);
     kfSelected = Math.max(0, Math.min(kf.length - 1, kfSelected));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
     kfTime = kf[kfSelected].t;
     kfSyncTextarea();
     kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function deleteSelection() {
+    if (!kfSel || kfSel.size === 0) return;
+    const keep = kf.filter(obj => !kfSel.has(obj));
+    if (keep.length < 2) return; // keep minimally 2 keyframes
+    kf = keep.sort((a, b) => a.t - b.t);
+    kfSelected = 0;
+    kfSelectedObj = kf[0];
+    kfSel = new Set([kf[0]]);
+    kfTime = kf[0].t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfNudge(dir) {
+    if (!kfSel || kfSel.size === 0) return;
+    const step = (kfGridDiv && kfGridDiv > 1) ? (1 / kfGridDiv) : 0.01;
+    let delta = (dir < 0 ? -step : step);
+    // compute bounds like group drag
+    let dMin = -Infinity, dMax = Infinity;
+    for (let i = 0; i < kf.length; i++) {
+      const obj = kf[i];
+      if (!kfSel.has(obj)) continue;
+      const origT = obj.t;
+      const leftT = (i > 0 && !kfSel.has(kf[i - 1])) ? (kf[i - 1].t + 0.001) : -Infinity;
+      const rightT = (i < kf.length - 1 && !kfSel.has(kf[i + 1])) ? (kf[i + 1].t - 0.001) : Infinity;
+      dMin = Math.max(dMin, leftT - origT);
+      dMax = Math.min(dMax, rightT - origT);
+    }
+    delta = Math.max(dMin, Math.min(dMax, delta));
+    if (!Number.isFinite(delta) || delta === 0) return;
+    for (const obj of kfSel) {
+      obj.t = Math.max(0, Math.min(1, obj.t + delta));
+    }
+    // Re-sort and restore selection/primary
+    const selObjs = new Set(kfSel);
+    const primary = kfSelectedObj;
+    kf.sort((a, b) => a.t - b.t);
+    kfSel = new Set(kf.filter(obj => selObjs.has(obj)));
+    kfSelected = Math.max(0, kf.findIndex(p => p === primary));
+    if (kfSelected < 0) { kfSelected = 0; kfSelectedObj = kf[0]; kfSel = new Set([kf[0]]); }
+    else kfSelectedObj = kf[kfSelected];
+    kfTime = kfSelectedObj.t;
+    kfSyncTextarea();
     kfRenderAll();
     applyLayerForm();
   }
@@ -892,6 +1000,8 @@
     const segEase = (typeof a.e === "string" ? a.e : easeMode);
     if (segEase === "bezier" && Array.isArray(a.b) && a.b.length === 4) {
       lt = cubicBezierYForX(lt, a.b[0], a.b[1], a.b[2], a.b[3]);
+    } else if (segEase === "step") {
+      lt = 0; // hold
     } else {
       lt = kfEase(lt, segEase);
     }
@@ -952,10 +1062,18 @@
     // keyframes
     for (let i = 0; i < kf.length; i++) {
       const x = 8 + (w - 16) * kf[i].t;
+      const sel = kfSel && kfSel.has(kf[i]);
       ctx.beginPath();
       ctx.arc(x, h / 2, i === kfSelected ? 6 : 4, 0, Math.PI * 2);
-      ctx.fillStyle = i === kfSelected ? "#00f5d4" : "#5b8def";
+      ctx.fillStyle = i === kfSelected ? "#00f5d4" : (sel ? "#7fb5ff" : "#5b8def");
       ctx.fill();
+      if (sel && i !== kfSelected) {
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, h / 2, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.strokeStyle = "#0b0f14";
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -1225,19 +1343,39 @@
       const rect = kfTimelineEl.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const w = kfTimelineEl.width;
-      const h = kfTimelineEl.height;
       const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
       const t = kfApplySnap(ts);
       // check if near a keyframe
       const idx = kf.findIndex(p => Math.abs((8 + (w - 16) * p.t) - x) < 8);
+      const multi = e.shiftKey || e.metaKey || e.ctrlKey;
       if (idx >= 0) {
-        kfSelect(idx);
+        if (multi) {
+          if (e.shiftKey) kfSelectRange(idx);
+          else kfToggleSelect(idx);
+        } else {
+          kfSelectOnly(idx);
+        }
+        // start drag (group if multiple selected)
         kfDragIdx = idx;
         kfDragging = true;
+        kfDragGroup = (kfSel.size > 1);
+        if (kfDragGroup) {
+          kfDragOrig = new Map();
+          for (const obj of kfSel) {
+            kfDragOrig.set(obj, obj.t);
+          }
+        } else {
+          kfDragOrig = null;
+        }
       } else {
+        if (!multi) {
+          kfClearSelection();
+          if (kfSelected >= 0) kfSelectOnly(kfSelected);
+        }
         kfSetTime(t);
       }
     });
+
     window.addEventListener("mousemove", (e) => {
       if (!kfDragging || kfDragIdx < 0) return;
       const rect = kfTimelineEl.getBoundingClientRect();
@@ -1245,26 +1383,71 @@
       const w = kfTimelineEl.width;
       let t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
       t = kfApplySnap(t);
-      // clamp between neighbors
-      const left = kf[kfDragIdx - 1]?.t ?? 0;
-      const right = kf[kfDragIdx + 1]?.t ?? 1;
-      if (kfDragIdx > 0) t = Math.max(left + 0.001, t);
-      if (kfDragIdx < kf.length - 1) t = Math.min(right - 0.001, t);
-      kf[kfDragIdx].t = t;
-      kfTime = t;
+
+      if (!kfDragGroup) {
+        // single point drag
+        const left = kf[kfDragIdx - 1]?.t ?? 0;
+        const right = kf[kfDragIdx + 1]?.t ?? 1;
+        if (kfDragIdx > 0) t = Math.max(left + 0.001, t);
+        if (kfDragIdx < kf.length - 1) t = Math.min(right - 0.001, t);
+        kf[kfDragIdx].t = t;
+        kfTime = t;
+      } else {
+        // group drag by delta, constrained by neighbors
+        const anchorObj = kf[kfDragIdx];
+        const origAnchorT = kfDragOrig.get(anchorObj);
+        if (typeof origAnchorT !== "number") return;
+        let delta = t - origAnchorT;
+
+        // compute clamp for all selected points
+        let dMin = -Infinity, dMax = Infinity;
+        for (let i = 0; i < kf.length; i++) {
+          const obj = kf[i];
+          if (!kfSel.has(obj)) continue;
+          const origT = kfDragOrig.get(obj);
+          const leftT = (i > 0 && !kfSel.has(kf[i - 1])) ? (kf[i - 1].t + 0.001) : -Infinity;
+          const rightT = (i < kf.length - 1 && !kfSel.has(kf[i + 1])) ? (kf[i + 1].t - 0.001) : Infinity;
+          dMin = Math.max(dMin, leftT - origT);
+          dMax = Math.min(dMax, rightT - origT);
+        }
+        delta = Math.max(dMin, Math.min(dMax, delta));
+        // apply delta to all selected
+        for (let i = 0; i < kf.length; i++) {
+          const obj = kf[i];
+          if (!kfSel.has(obj)) continue;
+          const origT = kfDragOrig.get(obj);
+          obj.t = Math.max(0, Math.min(1, origT + delta));
+        }
+        kfTime = Math.max(0, Math.min(1, origAnchorT + delta));
+      }
       kfSyncInputs();
       kfRenderAll();
     });
+
     window.addEventListener("mouseup", () => {
       if (kfDragging) {
         kfDragging = false;
         kfDragIdx = -1;
+        kfDragGroup = false;
+        kfDragOrig = null;
+        // Keep selection by object identity, then sort and restore primary index
+        const selObjs = new Set(kfSel);
+        const primary = kfSelectedObj;
         kf.sort((a, b) => a.t - b.t);
-        kfSelected = Math.max(0, kf.findIndex(p => p.t === kfTime));
+        kfSel = new Set(kf.filter(obj => selObjs.has(obj)));
+        kfSelected = Math.max(0, kf.findIndex(p => p === primary));
+        if (kfSelected < 0) {
+          kfSelected = 0;
+          kfSelectedObj = kf[0];
+          kfSel = new Set([kf[0]]);
+        } else {
+          kfSelectedObj = kf[kfSelected];
+        }
         kfSyncTextarea();
         applyLayerForm();
       }
     });
+
     kfTimelineEl.addEventListener("dblclick", (e) => {
       const rect = kfTimelineEl.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -1273,9 +1456,15 @@
       const t = kfApplySnap(ts);
       kfAddAt(t);
     });
+
     kfTimelineEl.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (kfSelected >= 0) kfDeleteSelected();
+      // delete selection if any, else delete primary
+      if (kfSel && kfSel.size > 1) {
+        deleteSelection();
+      } else if (kfSelected >= 0) {
+        kfDeleteSelected();
+      }
     });
   }
 
@@ -1321,6 +1510,29 @@
   if (kfStopBtn) kfStopBtn.addEventListener("click", () => kfStopPlay());
   if (kfAddBtn) kfAddBtn.addEventListener("click", () => kfAddAt(kfTime));
   if (kfDeleteBtn) kfDeleteBtn.addEventListener("click", () => kfDeleteSelected());
+
+  // Multi-select helpers
+  const kfSelectAllBtn = document.getElementById("kfSelectAll");
+  const kfClearSelBtn = document.getElementById("kfClearSel");
+  const kfDeleteSelBtn = document.getElementById("kfDeleteSel");
+  const kfNudgeLeftBtn = document.getElementById("kfNudgeLeft");
+  const kfNudgeRightBtn = document.getElementById("kfNudgeRight");
+
+  if (kfSelectAllBtn) kfSelectAllBtn.addEventListener("click", () => {
+    kfSel = new Set(kf);
+    if (kfSelected < 0 && kf.length > 0) { kfSelected = 0; kfSelectedObj = kf[0]; }
+    kfRenderTimeline();
+  });
+  if (kfClearSelBtn) kfClearSelBtn.addEventListener("click", () => {
+    if (kfSelected < 0 && kf.length > 0) kfSelected = 0;
+    kfSelected = Math.max(0, Math.min(kf.length - 1, kfSelected));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
+    kfRenderTimeline();
+  });
+  if (kfDeleteSelBtn) kfDeleteSelBtn.addEventListener("click", () => deleteSelection());
+  if (kfNudgeLeftBtn) kfNudgeLeftBtn.addEventListener("click", () => kfNudge(-1));
+  if (kfNudgeRightBtn) kfNudgeRightBtn.addEventListener("click", () => kfNudge(1));
 
   // Options
   if (kfSnapEl) kfSnapEl.addEventListener("change", () => { kfSnapEnabled = !!kfSnapEl.checked; kfRenderTimeline(); });

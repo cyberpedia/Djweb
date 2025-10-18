@@ -419,6 +419,11 @@
                     <button id="kfStopBtn" class="secondary">Stop</button>
                     <button id="kfAddBtn">Add Keyframe</button>
                     <button id="kfDeleteBtn" class="secondary">Delete Keyframe</button>
+                    <button id="kfSelectAll" class="secondary">Select All</button>
+                    <button id="kfClearSel" class="secondary">Clear Sel</button>
+                    <button id="kfDeleteSel" class="secondary">Delete Sel</button>
+                    <button id="kfNudgeLeft" class="secondary">Nudge −</button>
+                    <button id="kfNudgeRight" class="secondary">Nudge +</button>
                     <span id="kfTimeLabel" class="muted">t=0.00</span>
                   </div>
 
@@ -429,6 +434,7 @@
                     <select id="kfSegEase">
                       <option value="inherit" selected>Inherit (global)</option>
                       <option value="linear">Linear</option>
+                      <option value="step">Step (hold)</option>
                       <option value="easeIn">Ease In</option>
                       <option value="easeOut">Ease Out</option>
                       <option value="easeInOut">Ease In Out</option>
