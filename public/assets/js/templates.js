@@ -1,0 +1,1916 @@
+(function () {
+  const modal = document.getElementById("tplModal");
+  const tplListEl = document.getElementById("tplList");
+  const tplNameEl = document.getElementById("tplName");
+  const tplModeEl = document.getElementById("tplMode");
+  const tplFgEl = document.getElementById("tplFg");
+  const tplBgEl = document.getElementById("tplBg");
+  const tplScaleEl = document.getElementById("tplScale");
+  const tplStatusEl = document.getElementById("tplStatus");
+
+  const tplCloseBtn = document.getElementById("tplCloseBtn");
+  const tplNewBtn = document.getElementById("tplNewBtn");
+  const tplDeleteBtn = document.getElementById("tplDeleteBtn");
+  const tplSaveBtn = document.getElementById("tplSaveBtn");
+  const tplExportBtn = document.getElementById("tplExportBtn");
+  const tplShareBtn = document.getElementById("tplShareBtn");
+  const tplImportInput = document.getElementById("tplImportInput");
+
+  // Overlay controls
+  const tplOverlayTitleEl = document.getElementById("tplOverlayTitle");
+  const tplProgressArcEl = document.getElementById("tplProgressArc");
+  const tplParticleTrailsEl = document.getElementById("tplParticleTrails");
+  const tplLogoUrlEl = document.getElementById("tplLogoUrl");
+  const tplLogoSizeEl = document.getElementById("tplLogoSize");
+  const tplLogoPositionEl = document.getElementById("tplLogoPosition");
+  const tplColorMapEl = document.getElementById("tplColorMap");
+  const tplColorStopsListEl = document.getElementById("tplColorStopsList");
+  const tplColorStopAddBtn = document.getElementById("tplColorStopAdd");
+  const tplTextOverlayTextEl = document.getElementById("tplTextOverlayText");
+  const tplTextOverlaySizeEl = document.getElementById("tplTextOverlaySize");
+  const tplTextOverlayPositionEl = document.getElementById("tplTextOverlayPosition");
+  const tplParticleLinksEl = document.getElementById("tplParticleLinks");
+
+  const vizTemplateEl = document.getElementById("vizTemplate");
+
+  // Layers UI
+  const tplLayersListEl = document.getElementById("tplLayersList");
+  const layerAddTextBtn = document.getElementById("layerAddText");
+  const layerAddLogoBtn = document.getElementById("layerAddLogo");
+  const layerAddImageBtn = document.getElementById("layerAddImage");
+  const layerAddProgressBtn = document.getElementById("layerAddProgress");
+  const layerAddRectBtn = document.getElementById("layerAddRect");
+  const layerAddBarBtn = document.getElementById("layerAddBar");
+  const layerUpBtn = document.getElementById("layerUp");
+  const layerDownBtn = document.getElementById("layerDown");
+  const layerRemoveBtn = document.getElementById("layerRemove");
+
+  const layerTypeEl = document.getElementById("layerType");
+  const layerOpacityEl = document.getElementById("layerOpacity");
+  const layerBlendEl = document.getElementById("layerBlend");
+  const layerTextEl = document.getElementById("layerText");
+  const layerSizeEl = document.getElementById("layerSize");
+  const layerLogoUrlEl = document.getElementById("layerLogoUrl");
+  const layerLogoSizeEl = document.getElementById("layerLogoSize");
+  const layerRadiusEl = document.getElementById("layerRadius");
+  const layerThicknessEl = document.getElementById("layerThickness");
+  const layerRectWidthEl = document.getElementById("layerRectWidth");
+  const layerRectHeightEl = document.getElementById("layerRectHeight");
+  const layerRectRadiusEl = document.getElementById("layerRectRadius");
+  const layerRectColorEl = document.getElementById("layerRectColor");
+  const layerImageUrlEl = document.getElementById("layerImageUrl");
+  const layerImageWidthEl = document.getElementById("layerImageWidth");
+  const layerImageHeightEl = document.getElementById("layerImageHeight");
+  const layerImageTintEl = document.getElementById("layerImageTint");
+  const layerImageAlphaEl = document.getElementById("layerImageAlpha");
+  const layerBarWidthEl = document.getElementById("layerBarWidth");
+  const layerBarHeightEl = document.getElementById("layerBarHeight");
+  const layerBarColorEl = document.getElementById("layerBarColor");
+  const layerBarOrientEl = document.getElementById("layerBarOrient");
+  const layerPositionEl = document.getElementById("layerPosition");
+  const layerAnimTypeEl = document.getElementById("layerAnimType");
+  const layerAnimSpeedEl = document.getElementById("layerAnimSpeed");
+  const layerAnimAmpEl = document.getElementById("layerAnimAmp");
+  const layerAnimEaseEl = document.getElementById("layerAnimEase");
+  const layerAnimDurEl = document.getElementById("layerAnimDur");
+  const layerAnimLoopEl = document.getElementById("layerAnimLoop");
+  const layerAnimKfEl = document.getElementById("layerAnimKf");
+
+  // Keyframe editor elements
+  const kfEditorEl = document.getElementById("kfEditor");
+  const kfTimelineEl = document.getElementById("kfTimeline");
+  const kfStageEl = document.getElementById("kfStage");
+  const kfPlayBtn = document.getElementById("kfPlayBtn");
+  const kfStopBtn = document.getElementById("kfStopBtn");
+  const kfAddBtn = document.getElementById("kfAddBtn");
+  const kfDeleteBtn = document.getElementById("kfDeleteBtn");
+  const kfTimeLabel = document.getElementById("kfTimeLabel");
+  const kfTEl = document.getElementById("kfT");
+  const kfXEl = document.getElementById("kfX");
+  const kfYEl = document.getElementById("kfY");
+  const kfREl = document.getElementById("kfR");
+  const kfSEl = document.getElementById("kfS");
+  const kfSegEaseEl = document.getElementById("kfSegEase");
+  const kfCurvesEl = document.getElementById("kfCurves");
+  const kfBezierBox = document.getElementById("kfBezierBox");
+  const kfBezierEl = document.getElementById("kfBezier");
+  const kfBx1El = document.getElementById("kfBx1");
+  const kfBy1El = document.getElementById("kfBy1");
+  const kfBx2El = document.getElementById("kfBx2");
+  const kfBy2El = document.getElementById("kfBy2");
+  const kfBezierReset = document.getElementById("kfBezierReset");
+  const kfPresetLinear = document.getElementById("kfPresetLinear");
+  const kfPresetEase = document.getElementById("kfPresetEase");
+  const kfPresetEaseIn = document.getElementById("kfPresetEaseIn");
+  const kfPresetEaseOut = document.getElementById("kfPresetEaseOut");
+  const kfPresetEaseInOut = document.getElementById("kfPresetEaseInOut");
+
+  // Options
+  const kfSnapEl = document.getElementById("kfSnap");
+  const kfGridDivEl = document.getElementById("kfGridDiv");
+  const kfShowXEl = document.getElementById("kfShowX");
+  const kfShowYEl = document.getElementById("kfShowY");
+  const kfShowREl = document.getElementById("kfShowR");
+  const kfShowSEl = document.getElementById("kfShowS");
+
+  // Keyframe editor state
+  let kf = [];
+  let kfSelected = -1;         // primary selected index
+  let kfSel = new Set();       // Set of selected keyframe objects
+  let kfSelectedObj = null;    // primary selected object
+  let kfPlay = false;
+  let kfPlayStart = 0; // performance.now()
+  let kfPlayDur = 4;   // seconds
+  let kfTime = 0;      // 0..1
+  let kfDragIdx = -1;
+  let kfDragging = false;
+  let kfDragGroup = false;
+  let kfDragOrig = null;       // Map of object -> original t, for group drag
+
+  // Stage preview image cache
+  const stageImgCache = new Map();
+
+  // UI options state
+  let kfSnapEnabled = true;
+  let kfGridDiv = 20;
+  let kfShowX = true, kfShowY = true, kfShowR = true, kfShowS = true;
+  const kfSnapEpsBase = 0.015; // seconds (normalized) snapping threshold
+
+  let templates = [];
+  let selectedIdx = -1;
+  let selectedLayerIdx = -1;
+
+  async function loadTemplatesFromServer() {
+    try {
+      const res = await fetch("/api/templates.php");
+      if (!res.ok) throw new Error("fetch failed");
+      templates = await res.json();
+    } catch {
+      templates = [
+        { name: "Neon Bars", mode: "bars", fg: "#00F5D4", bg: "#0B0F14", scale: 1.0 },
+        { name: "Aurora Radial", mode: "radial", fg: "#5B8DEF", bg: "#0B0F14", scale: 1.0 }
+      ];
+    }
+    renderList();
+    if (templates.length) selectIndex(0);
+  }
+
+  function renderList() {
+    tplListEl.innerHTML = "";
+    templates.forEach((tpl, i) => {
+      const li = document.createElement("li");
+      li.textContent = tpl.name;
+      li.className = i === selectedIdx ? "active" : "";
+      li.addEventListener("click", () => selectIndex(i));
+      tplListEl.appendChild(li);
+    });
+  }
+
+  function getLayers() {
+    const tpl = templates[selectedIdx];
+    if (!tpl) return [];
+    if (!Array.isArray(tpl.layers)) tpl.layers = [];
+    return tpl.layers;
+  }
+
+  function getColorStops() {
+    const tpl = templates[selectedIdx];
+    if (!tpl) return [];
+    if (!Array.isArray(tpl.colorStops)) tpl.colorStops = [];
+    return tpl.colorStops;
+  }
+
+  function renderColorStops(stops) {
+    tplColorStopsListEl.innerHTML = "";
+    (stops || []).forEach((s, i) => {
+      const li = document.createElement("li");
+      const off = document.createElement("input");
+      off.type = "number"; off.min = "0"; off.max = "1"; off.step = "0.01";
+      off.value = (Number.isFinite(s.offset) ? s.offset : 0).toString();
+      const col = document.createElement("input");
+      col.type = "color";
+      const color = typeof s.color === "string" ? s.color : "#ffffff";
+      // normalize to #rrggbb
+      col.value = /^#/.test(color) ? color : "#ffffff";
+      const rem = document.createElement("button");
+      rem.textContent = "Remove";
+      rem.className = "secondary";
+      rem.addEventListener("click", () => {
+        const arr = getColorStops();
+        arr.splice(i, 1);
+        renderColorStops(arr);
+      });
+      off.addEventListener("input", () => {
+        const arr = getColorStops();
+        arr[i] = { offset: parseFloat(off.value || "0"), color: col.value };
+      });
+      col.addEventListener("input", () => {
+        const arr = getColorStops();
+        arr[i] = { offset: parseFloat(off.value || "0"), color: col.value };
+      });
+      li.appendChild(off);
+      li.appendChild(col);
+      li.appendChild(rem);
+      tplColorStopsListEl.appendChild(li);
+    });
+  }
+
+  function renderLayersList() {
+    const layers = getLayers();
+    tplLayersListEl.innerHTML = "";
+    layers.forEach((layer, i) => {
+      const li = document.createElement("li");
+      li.textContent = layer.type || "layer";
+      li.className = i === selectedLayerIdx ? "active" : "";
+      li.addEventListener("click", () => selectLayer(i));
+      tplLayersListEl.appendChild(li);
+    });
+  }
+
+  function updateLayerFormVisibility(type) {
+    const showText = type === "text";
+    const showLogo = type === "logo";
+    const showImage = type === "image";
+    const showProg = type === "progressArc";
+    const showRect = type === "rectangle";
+    const showBar = type === "progressBar";
+    document.querySelector(".layer-text-fields").style.display = showText ? "grid" : "none";
+    document.querySelector(".layer-logo-fields").style.display = showLogo ? "grid" : "none";
+    document.querySelector(".layer-image-fields").style.display = showImage ? "grid" : "none";
+    document.querySelector(".layer-progress-fields").style.display = showProg ? "grid" : "none";
+    document.querySelector(".layer-rect-fields").style.display = showRect ? "grid" : "none";
+    document.querySelector(".layer-bar-fields").style.display = showBar ? "grid" : "none";
+  }
+
+  function selectLayer(i) {
+    selectedLayerIdx = i;
+    renderLayersList();
+    const layers = getLayers();
+    const layer = layers[i];
+    if (!layer) {
+      layerTypeEl.value = "";
+      updateLayerFormVisibility("");
+      return;
+    }
+    layerTypeEl.value = layer.type || "";
+    layerPositionEl.value = layer.position || "top-left";
+    layerOpacityEl.value = Number.isFinite(layer.opacity) ? layer.opacity : 1.0;
+    layerBlendEl.value = typeof layer.blend === "string" ? layer.blend : "normal";
+    const anim = layer.anim || {};
+    layerAnimTypeEl.value = typeof anim.type === "string" ? anim.type : "none";
+    layerAnimSpeedEl.value = Number.isFinite(anim.speed) ? anim.speed : 0.5;
+    layerAnimAmpEl.value = Number.isFinite(anim.amp) ? anim.amp : 10;
+    layerAnimEaseEl.value = typeof anim.ease === "string" ? anim.ease : "linear";
+    layerAnimDurEl.value = Number.isFinite(anim.dur) ? anim.dur : 4;
+    layerAnimLoopEl.checked = !!anim.loop;
+    try {
+      const kfTemp = Array.isArray(anim.kf) ? anim.kf : [];
+      layerAnimKfEl.value = JSON.stringify(kfTemp, null, 2);
+    } catch {
+      layerAnimKfEl.value = "[]";
+    }
+    // Initialize keyframe editor for this layer
+    kfUpdateVisibility();
+    kfLoadFromTextarea();
+    kfRenderAll();
+    if (layer.type === "text") {
+      layerTextEl.value = layer.text || "";
+      layerSizeEl.value = Number.isFinite(layer.size) ? layer.size : 24;
+    } else if (layer.type === "logo") {
+      layerLogoUrlEl.value = layer.url || "";
+      layerLogoSizeEl.value = Number.isFinite(layer.size) ? layer.size : 64;
+    } else if (layer.type === "image") {
+      layerImageUrlEl.value = layer.url || "";
+      layerImageWidthEl.value = Number.isFinite(layer.width) ? layer.width : 256;
+      layerImageHeightEl.value = Number.isFinite(layer.height) ? layer.height : 256;
+      layerImageTintEl.value = typeof layer.tint === "string" ? layer.tint : "#ffffff";
+      layerImageAlphaEl.value = Number.isFinite(layer.alpha) ? layer.alpha : 0;
+    } else if (layer.type === "progressArc") {
+      layerRadiusEl.value = Number.isFinite(layer.radius) ? layer.radius : 26;
+      layerThicknessEl.value = Number.isFinite(layer.thickness) ? layer.thickness : 6;
+    } else if (layer.type === "rectangle") {
+      layerRectWidthEl.value = Number.isFinite(layer.width) ? layer.width : 200;
+      layerRectHeightEl.value = Number.isFinite(layer.height) ? layer.height : 100;
+      layerRectRadiusEl.value = Number.isFinite(layer.radius) ? layer.radius : 12;
+      layerRectColorEl.value = typeof layer.color === "string" ? layer.color : "#ffffff";
+    } else if (layer.type === "progressBar") {
+      layerBarWidthEl.value = Number.isFinite(layer.width) ? layer.width : 400;
+      layerBarHeightEl.value = Number.isFinite(layer.height) ? layer.height : 20;
+      layerBarColorEl.value = typeof layer.color === "string" ? layer.color : "#00F5D4";
+      layerBarOrientEl.value = typeof layer.orient === "string" ? layer.orient : "h";
+    }
+    updateLayerFormVisibility(layer.type);
+  }
+
+  function readLayerForm() {
+    const type = layerTypeEl.value;
+    const position = layerPositionEl.value;
+    const opacity = Math.max(0, Math.min(1, parseFloat(layerOpacityEl.value || "1")));
+    const blend = layerBlendEl.value || "normal";
+    let kf = [];
+    try {
+      const arr = JSON.parse(layerAnimKfEl.value || "[]");
+      if (Array.isArray(arr)) {
+        kf = arr.map((p) => {
+          const e = typeof p.e === "string" ? p.e : undefined;
+          const b = Array.isArray(p.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
+          return {
+            t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+            x: Number.isFinite(p.x) ? p.x : 0,
+            y: Number.isFinite(p.y) ? p.y : 0,
+            r: Number.isFinite(p.r) ? p.r : 0,
+            s: Number.isFinite(p.s) ? p.s : 1,
+            ...(e ? { e } : {}),
+            ...(b ? { b } : {})
+          };
+        }).sort((a, b) => a.t - b.t);
+      }
+    } catch {}
+    const anim = {
+      type: layerAnimTypeEl.value || "none",
+      speed: parseFloat(layerAnimSpeedEl.value || "0.5"),
+      amp: parseFloat(layerAnimAmpEl.value || "10"),
+      ease: layerAnimEaseEl.value || "linear",
+      dur: parseFloat(layerAnimDurEl.value || "4"),
+      loop: !!layerAnimLoopEl.checked,
+      kf
+    };
+    if (type === "text") {
+      return { type, position, opacity, blend, anim, text: layerTextEl.value, size: parseInt(layerSizeEl.value || "24", 10) };
+    }
+    if (type === "logo") {
+      return { type, position, opacity, blend, anim, url: layerLogoUrlEl.value.trim(), size: parseInt(layerLogoSizeEl.value || "64", 10) };
+    }
+    if (type === "image") {
+      return {
+        type, position, opacity, blend, anim,
+        url: layerImageUrlEl.value.trim(),
+        width: parseInt(layerImageWidthEl.value || "256", 10),
+        height: parseInt(layerImageHeightEl.value || "256", 10),
+        tint: layerImageTintEl.value || "#ffffff",
+        alpha: Math.max(0, Math.min(1, parseFloat(layerImageAlphaEl.value || "0")))
+      };
+    }
+    if (type === "progressArc") {
+      return { type, position, opacity, blend, anim, radius: parseInt(layerRadiusEl.value || "26", 10), thickness: parseInt(layerThicknessEl.value || "6", 10) };
+    }
+    if (type === "rectangle") {
+      return { type, position, opacity, blend, anim, width: parseInt(layerRectWidthEl.value || "200", 10), height: parseInt(layerRectHeightEl.value || "100", 10), radius: parseInt(layerRectRadiusEl.value || "12", 10), color: layerRectColorEl.value || "#ffffff" };
+    }
+    if (type === "progressBar") {
+      return { type, position, opacity, blend, anim, width: parseInt(layerBarWidthEl.value || "400", 10), height: parseInt(layerBarHeightEl.value || "20", 10), color: layerBarColorEl.value || "#00F5D4", orient: layerBarOrientEl.value || "h" };
+    }
+    return null;
+  }
+
+  function applyLayerForm() {
+    if (selectedLayerIdx < 0) return;
+    const layers = getLayers();
+    const upd = readLayerForm();
+    if (!upd) return;
+    layers[selectedLayerIdx] = upd;
+    renderLayersList();
+  }
+
+  function addLayer(type) {
+    if (selectedIdx < 0) return;
+    const layers = getLayers();
+    let base = { anim: { type: "none", speed: 0.5, amp: 10 } };
+    let layer = null;
+    if (type === "text") layer = { ...base, type: "text", text: "Sample", size: 24, position: "bottom-left", opacity: 1, blend: "normal" };
+    else if (type === "logo") layer = { ...base, type: "logo", url: "", size: 64, position: "top-left", opacity: 1, blend: "normal" };
+    else if (type === "image") layer = { ...base, type: "image", url: "", width: 256, height: 256, tint: "#ffffff", alpha: 0, position: "top-left", opacity: 1, blend: "normal" };
+    else if (type === "progressArc") layer = { ...base, type: "progressArc", radius: 26, thickness: 6, position: "top-right", opacity: 1, blend: "normal" };
+    else if (type === "rectangle") layer = { ...base, type: "rectangle", width: 200, height: 100, radius: 12, color: "#ffffff", position: "top-left", opacity: 0.5, blend: "overlay" };
+    else if (type === "progressBar") layer = { ...base, type: "progressBar", width: 400, height: 20, color: "#00F5D4", orient: "h", position: "bottom-left", opacity: 1, blend: "normal" };
+    if (!layer) return;
+    layers.push(layer);
+    selectedLayerIdx = layers.length - 1;
+    renderLayersList();
+    selectLayer(selectedLayerIdx);
+  }
+
+  function moveLayer(dir) {
+    const layers = getLayers();
+    if (selectedLayerIdx < 0 || selectedLayerIdx >= layers.length) return;
+    const ni = selectedLayerIdx + dir;
+    if (ni < 0 || ni >= layers.length) return;
+    const temp = layers[selectedLayerIdx];
+    layers[selectedLayerIdx] = layers[ni];
+    layers[ni] = temp;
+    selectedLayerIdx = ni;
+    renderLayersList();
+  }
+
+  function removeLayer() {
+    const layers = getLayers();
+    if (selectedLayerIdx < 0 || selectedLayerIdx >= layers.length) return;
+    layers.splice(selectedLayerIdx, 1);
+    selectedLayerIdx = Math.min(selectedLayerIdx, layers.length - 1);
+    renderLayersList();
+    if (layers.length) selectLayer(selectedLayerIdx); else {
+      layerTypeEl.value = "";
+      updateLayerFormVisibility("");
+    }
+  }
+
+  function selectIndex(i) {
+    selectedIdx = i;
+    renderList();
+    const tpl = templates[i];
+    if (!tpl) return;
+    tplNameEl.value = tpl.name || "";
+    tplModeEl.value = tpl.mode || "bars";
+    tplFgEl.value = tpl.fg || "#00F5D4";
+    tplBgEl.value = tpl.bg || "#0B0F14";
+    tplScaleEl.value = Number.isFinite(tpl.scale) ? tpl.scale : 1.0;
+
+    tplColorMapEl.value = tpl.colorMap || "gradient";
+    tplOverlayTitleEl.checked = !!tpl.overlayTitle;
+    tplProgressArcEl.checked = !!tpl.progressArc;
+    tplParticleTrailsEl.checked = !!tpl.particleTrails;
+    tplParticleLinksEl.checked = !!tpl.particleLinks;
+    tplLogoUrlEl.value = tpl.logoUrl || "";
+    tplLogoSizeEl.value = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
+    tplLogoPositionEl.value = tpl.logoPosition || "top-left";
+    const to = tpl.textOverlay || {};
+    tplTextOverlayTextEl.value = to.text || "";
+    tplTextOverlaySizeEl.value = Number.isFinite(to.size) ? to.size : 24;
+    tplTextOverlayPositionEl.value = to.position || "bottom-left";
+
+    // Color stops
+    if (!Array.isArray(tpl.colorStops) || tpl.colorStops.length === 0) {
+      // Initialize default stops from FG/BG
+      tpl.colorStops = [
+        { offset: 0, color: tpl.bg || "#0B0F14" },
+        { offset: 1, color: tpl.fg || "#00F5D4" }
+      ];
+    }
+    renderColorStops(tpl.colorStops);
+
+    selectedLayerIdx = -1;
+    renderLayersList();
+  }
+
+  function readForm() {
+    const colorStops = getColorStops().slice().map(s => ({
+      offset: Math.max(0, Math.min(1, parseFloat(s.offset) || 0)),
+      color: typeof s.color === "string" ? s.color : "#ffffff"
+    })).sort((a, b) => a.offset - b.offset);
+    return {
+      name: tplNameEl.value.trim() || "Untitled",
+      mode: tplModeEl.value,
+      fg: tplFgEl.value,
+      bg: tplBgEl.value,
+      scale: parseFloat(tplScaleEl.value || "1.0"),
+      colorMap: tplColorMapEl.value,
+      colorStops,
+      overlayTitle: tplOverlayTitleEl.checked,
+      progressArc: tplProgressArcEl.checked,
+      particleTrails: tplParticleTrailsEl.checked,
+      particleLinks: tplParticleLinksEl.checked,
+      logoUrl: tplLogoUrlEl.value.trim(),
+      logoSize: parseInt(tplLogoSizeEl.value || "64", 10),
+      logoPosition: tplLogoPositionEl.value,
+      textOverlay: {
+        text: tplTextOverlayTextEl.value.trim(),
+        size: parseInt(tplTextOverlaySizeEl.value || "24", 10),
+        position: tplTextOverlayPositionEl.value
+      },
+      layers: getLayers().slice()
+    };
+  }
+
+  async function saveTemplatesToServer() {
+    tplStatusEl.textContent = "Saving…";
+    try {
+      const res = await fetch("/api/templates_save.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templates)
+      });
+      const data = await res.json();
+      if (data?.success) {
+        tplStatusEl.textContent = "Saved.";
+        // Refresh dropdown in main UI
+        await AveeViz.loadTemplates(vizTemplateEl);
+      } else {
+        tplStatusEl.textContent = "Save failed.";
+      }
+    } catch {
+      tplStatusEl.textContent = "Error saving templates.";
+    }
+  }
+
+  tplCloseBtn.addEventListener("click", () => {
+    modal.classList.add("hidden");
+  });
+
+  tplNewBtn.addEventListener("click", () => {
+    const t = { name: "New Template", mode: "bars", fg: "#00F5D4", bg: "#0B0F14", scale: 1.0 };
+    templates.push(t);
+    selectIndex(templates.length - 1);
+    renderList();
+  });
+
+  tplDeleteBtn.addEventListener("click", async () => {
+    if (selectedIdx < 0) return;
+    templates.splice(selectedIdx, 1);
+    selectedIdx = Math.min(selectedIdx, templates.length - 1);
+    renderList();
+    if (templates.length) selectIndex(selectedIdx); else {
+      tplNameEl.value = "";
+      tplModeEl.value = "bars";
+      tplFgEl.value = "#00F5D4";
+      tplBgEl.value = "#0B0F14";
+      tplScaleEl.value = "1.0";
+    }
+    await saveTemplatesToServer();
+  });
+
+  tplSaveBtn.addEventListener("click", async () => {
+    if (selectedIdx < 0) return;
+    applyLayerForm();
+    templates[selectedIdx] = readForm();
+    await saveTemplatesToServer();
+  });
+
+  // Color stops controls
+  function ensureDefaultStops() {
+    const arr = getColorStops();
+    if (arr.length === 0) {
+      const fg = tplFgEl.value || "#00F5D4";
+      const bg = tplBgEl.value || "#0B0F14";
+      arr.push({ offset: 0, color: bg }, { offset: 1, color: fg });
+    }
+  }
+  tplColorStopAddBtn.addEventListener("click", () => {
+    const arr = getColorStops();
+    ensureDefaultStops();
+    arr.push({ offset: 0.5, color: "#ffffff" });
+    renderColorStops(arr);
+  });
+
+  tplColorMapEl.addEventListener("change", () => {
+    const wrap = document.querySelector(".colormap-stops");
+    if (wrap) wrap.style.display = tplColorMapEl.value === "custom" ? "grid" : "none";
+  });
+  // Initialize visibility based on current selection
+  (function initStopsVis() {
+    const wrap = document.querySelector(".colormap-stops");
+    if (wrap) wrap.style.display = tplColorMapEl.value === "custom" ? "grid" : "none";
+  })();
+
+  // Layers controls
+  layerAddTextBtn.addEventListener("click", () => addLayer("text"));
+  layerAddLogoBtn.addEventListener("click", () => addLayer("logo"));
+  layerAddImageBtn.addEventListener("click", () => addLayer("image"));
+  layerAddProgressBtn.addEventListener("click", () => addLayer("progressArc"));
+  layerAddRectBtn.addEventListener("click", () => addLayer("rectangle"));
+  layerAddBarBtn.addEventListener("click", () => addLayer("progressBar"));
+  layerUpBtn.addEventListener("click", () => moveLayer(-1));
+  layerDownBtn.addEventListener("click", () => moveLayer(1));
+  layerRemoveBtn.addEventListener("click", () => removeLayer());
+
+  // Layer form live updates
+  layerOpacityEl.addEventListener("input", applyLayerForm);
+  layerBlendEl.addEventListener("change", applyLayerForm);
+  layerAnimTypeEl.addEventListener("change", applyLayerForm);
+  layerAnimSpeedEl.addEventListener("input", applyLayerForm);
+  layerAnimAmpEl.addEventListener("input", applyLayerForm);
+  layerAnimEaseEl.addEventListener("change", applyLayerForm);
+  layerAnimDurEl.addEventListener("input", applyLayerForm);
+  layerAnimLoopEl.addEventListener("change", applyLayerForm);
+  layerAnimKfEl.addEventListener("input", applyLayerForm);
+  layerTextEl.addEventListener("input", applyLayerForm);
+  layerSizeEl.addEventListener("input", applyLayerForm);
+  layerLogoUrlEl.addEventListener("input", applyLayerForm);
+  layerLogoSizeEl.addEventListener("input", applyLayerForm);
+  layerRadiusEl.addEventListener("input", applyLayerForm);
+  if (layerThicknessEl) layerThicknessEl.addEventListener("input", applyLayerForm);
+  layerRectWidthEl.addEventListener("input", applyLayerForm);
+  layerRectHeightEl.addEventListener("input", applyLayerForm);
+  if (layerRectRadiusEl) layerRectRadiusEl.addEventListener("input", applyLayerForm);
+  layerRectColorEl.addEventListener("input", applyLayerForm);
+  if (layerImageUrlEl) layerImageUrlEl.addEventListener("input", applyLayerForm);
+  if (layerImageWidthEl) layerImageWidthEl.addEventListener("input", applyLayerForm);
+  if (layerImageHeightEl) layerImageHeightEl.addEventListener("input", applyLayerForm);
+  if (layerImageTintEl) layerImageTintEl.addEventListener("input", applyLayerForm);
+  if (layerImageAlphaEl) layerImageAlphaEl.addEventListener("input", applyLayerForm);
+  layerBarWidthEl.addEventListener("input", applyLayerForm);
+  layerBarHeightEl.addEventListener("input", applyLayerForm);
+  layerBarColorEl.addEventListener("input", applyLayerForm);
+  layerBarOrientEl.addEventListener("change", applyLayerForm);
+  layerPositionEl.addEventListener("change", applyLayerForm);
+
+  // ----- Keyframe editor helpers -----
+  function kfEase(t, mode) {
+    t = Math.max(0, Math.min(1, t));
+    if (mode === "easeIn") return t * t;
+    if (mode === "easeOut") return t * (2 - t);
+    if (mode === "easeInOut") return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    return t; // linear or inherit handled in caller
+  }
+
+  // Cubic-bezier utilities (CSS-like)
+  function cubicBezierYForX(x, x1, y1, x2, y2) {
+    x = Math.max(0, Math.min(1, x));
+    const cx = 3 * x1;
+    const bx = 3 * (x2 - x1) - cx;
+    const ax = 1 - cx - bx;
+
+    const cy = 3 * y1;
+    const by = 3 * (y2 - y1) - cy;
+    const ay = 1 - cy - by;
+
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleXDeriv = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+
+    // Newton-Raphson
+    let t = x;
+    for (let i = 0; i < 5; i++) {
+      const xEst = sampleX(t) - x;
+      const dX = sampleXDeriv(t);
+      if (Math.abs(xEst) < 1e-6) break;
+      if (Math.abs(dX) < 1e-6) break;
+      t = t - xEst / dX;
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+    }
+
+    // Fallback binary search if Newton out of bounds
+    let t0 = 0, t1 = 1;
+    for (let i = 0; i < 8; i++) {
+      const xEst = sampleX(t);
+      if (Math.abs(xEst - x) < 1e-6) break;
+      if (x > xEst) t0 = t; else t1 = t;
+      t = 0.5 * (t0 + t1);
+    }
+    const y = sampleY(t);
+    return Math.max(0, Math.min(1, y));
+  }
+
+  function kfBezierDefault() {
+    return [0.42, 0.0, 0.58, 1.0]; // ease-in-out
+  }
+
+  function kfGetSegBezier() {
+    const cur = kf[kfSelected];
+    if (!cur || kfSelected >= kf.length - 1) return null;
+    const b = Array.isArray(cur.b) && cur.b.length === 4 ? cur.b : null;
+    return b ? b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : null;
+  }
+
+  function kfSetSegBezier(arr) {
+    if (!Array.isArray(arr) || arr.length !== 4) return;
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    const b = arr.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0)));
+    kf[kfSelected].b = b;
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfBezierSyncInputs() {
+    const b = kfGetSegBezier() || kfBezierDefault();
+    kfBx1El && (kfBx1El.value = b[0].toFixed(2));
+    kfBy1El && (kfBy1El.value = b[1].toFixed(2));
+    kfBx2El && (kfBx2El.value = b[2].toFixed(2));
+    kfBy2El && (kfBy2El.value = b[3].toFixed(2));
+  }
+
+  function kfBezierFromInputs() {
+    const x1 = parseFloat(kfBx1El.value || "0") || 0;
+    const y1 = parseFloat(kfBy1El.value || "0") || 0;
+    const x2 = parseFloat(kfBx2El.value || "0") || 0;
+    const y2 = parseFloat(kfBy2El.value || "0") || 0;
+    return [
+      Math.max(0, Math.min(1, x1)),
+      Math.max(0, Math.min(1, y1)),
+      Math.max(0, Math.min(1, x2)),
+      Math.max(0, Math.min(1, y2))
+    ];
+  }
+
+  function kfRenderBezier() {
+    if (!kfBezierEl) return;
+    const ctx = kfBezierEl.getContext("2d");
+    const w = kfBezierEl.width, h = kfBezierEl.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // grid
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const x = Math.round((w * i) / 10);
+      const y = Math.round((h * i) / 10);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    // diagonal (linear)
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(w, 0);
+    ctx.stroke();
+
+    const b = kfGetSegBezier() || kfBezierDefault();
+    const [x1, y1, x2, y2] = b;
+
+    const toCanvas = (x, y) => [x * w, (1 - y) * h];
+
+    // Curve
+    ctx.strokeStyle = "#00f5d4";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 48; i++) {
+      const t = i / 48;
+      const x = t;
+      const y = cubicBezierYForX(t, x1, y1, x2, y2);
+      const [cx, cy] = toCanvas(x, y);
+      if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
+
+    // Handles
+    const [hx1, hy1] = toCanvas(x1, y1);
+    const [hx2, hy2] = toCanvas(x2, y2);
+    ctx.fillStyle = "#5b8def";
+    ctx.strokeStyle = "#0b0f14";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(hx1, hy1, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(hx2, hy2, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  function kfUpdateVisibility() {
+    const isKF = (layerAnimTypeEl.value || "none") === "keyframes";
+    if (kfEditorEl) kfEditorEl.classList.toggle("hidden", !isKF);
+    if (isKF) {
+      kfLoadFromTextarea();
+      // Toggle bezier box depending on selection
+      const isLast = kfSelected >= kf.length - 1;
+      const bez = (kfSegEaseEl && kfSegEaseEl.value === "bezier" && !isLast);
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !bez);
+      if (bez) { kfBezierSyncInputs(); kfRenderBezier(); }
+      kfRenderAll();
+    } else {
+      if (kfBezierBox) kfBezierBox.classList.add("hidden");
+    }
+  }
+
+  function kfLoadFromTextarea() {
+    try {
+      const arr = JSON.parse(layerAnimKfEl.value || "[]");
+      if (Array.isArray(arr)) {
+        kf = arr.map(p => {
+          const e = typeof p.e === "string" ? p.e : undefined;
+          const b = Array.isArray(p.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
+          return {
+            t: Math.max(0, Math.min(1, parseFloat(p.t) || 0)),
+            x: Number.isFinite(p.x) ? p.x : 0,
+            y: Number.isFinite(p.y) ? p.y : 0,
+            r: Number.isFinite(p.r) ? p.r : 0,
+            s: Number.isFinite(p.s) ? Math.max(0.01, p.s) : 1,
+            ...(e ? { e } : {}),
+            ...(b ? { b } : {})
+          };
+        }).sort((a, b) => a.t - b.t);
+      } else {
+        kf = [];
+      }
+    } catch {
+      kf = [];
+    }
+    if (kf.length < 2) {
+      kf = [{ t: 0, x: 0, y: 0, r: 0, s: 1 }, { t: 1, x: 0, y: 0, r: 0, s: 1 }];
+    }
+    kfSelected = 0;
+    kfSelectedObj = kf[0];
+    kfSel = new Set([kf[0]]);
+    kfTime = kf[0].t;
+    kfSyncInputs();
+    kfSyncTextarea();
+  }
+
+  function kfSyncTextarea() {
+    try {
+      layerAnimKfEl.value = JSON.stringify(kf.slice().sort((a, b) => a.t - b.t), null, 2);
+    } catch {}
+  }
+
+  function kfSyncInputs() {
+    const cur = kf[kfSelected] || kf[0];
+    if (!cur) return;
+    kfTEl.value = cur.t.toFixed(2);
+    kfXEl.value = Math.round(cur.x);
+    kfYEl.value = Math.round(cur.y);
+    kfREl.value = Math.round(cur.r);
+    kfSEl.value = (cur.s).toFixed(2);
+    if (kfTimeLabel) kfTimeLabel.textContent = `t=${(kfTime).toFixed(2)}`;
+    if (kfSegEaseEl) {
+      const isLast = kfSelected >= kf.length - 1;
+      kfSegEaseEl.disabled = isLast;
+      const v = cur.e || "inherit";
+      kfSegEaseEl.value = isLast ? "inherit" : v;
+      const showBezier = !isLast && v === "bezier";
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !showBezier);
+      if (showBezier) {
+        kfBezierSyncInputs();
+        kfRenderBezier();
+      }
+    }
+  }
+
+  function kfClearSelection() {
+    kfSel.clear();
+  }
+
+  function kfSelectOnly(idx) {
+    kfSelected = Math.max(0, Math.min(kf.length - 1, idx));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfToggleSelect(idx) {
+    const obj = kf[idx];
+    if (!obj) return;
+    if (kfSel.has(obj)) {
+      if (kfSel.size > 1) {
+        kfSel.delete(obj);
+        if (kfSelected === idx) {
+          // set primary to any remaining
+          const first = Array.from(kfSel)[0];
+          kfSelected = kf.findIndex(p => p === first);
+          kfSelectedObj = first;
+        }
+      } else {
+        // keep at least one selected; do nothing
+        return;
+      }
+    } else {
+      kfSel.add(obj);
+      kfSelected = idx;
+      kfSelectedObj = obj;
+    }
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfSelectRange(toIdx) {
+    if (kfSelected < 0) {
+      kfSelectOnly(Math.max(0, Math.min(kf.length - 1, toIdx)));
+      return;
+    }
+    const a = Math.min(kfSelected, toIdx);
+    const b = Math.max(kfSelected, toIdx);
+    kfSel = new Set(kf.slice(a, b + 1));
+    kfSelected = toIdx;
+    kfSelectedObj = kf[toIdx];
+    kfTime = kf[kfSelected].t;
+    kfSyncInputs();
+    kfRenderAll();
+  }
+
+  function kfSelect(idx) {
+    kfSelectOnly(idx);
+  }
+
+  function kfAddAt(t) {
+    const prev = kf.slice().sort((a, b) => a.t - b.t);
+    const ease = layerAnimEaseEl.value || "linear";
+    const samp = kfSample(prev, t, ease);
+    prev.push({ t: t, x: samp.x, y: samp.y, r: samp.r, s: samp.s });
+    kf = prev.sort((a, b) => a.t - b.t);
+    kfSelected = kf.findIndex(p => p.t === t);
+    if (kfSelected < 0) kfSelected = Math.max(0, Math.min(kf.length - 1, Math.floor(kf.length / 2)));
+    kfTime = t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfDeleteSelected() {
+    if (kf.length <= 2) return;
+    if (kfSelected < 0 || kfSelected >= kf.length) return;
+    kf.splice(kfSelected, 1);
+    kfSelected = Math.max(0, Math.min(kf.length - 1, kfSelected));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
+    kfTime = kf[kfSelected].t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function deleteSelection() {
+    if (!kfSel || kfSel.size === 0) return;
+    const keep = kf.filter(obj => !kfSel.has(obj));
+    if (keep.length < 2) return; // keep minimally 2 keyframes
+    kf = keep.sort((a, b) => a.t - b.t);
+    kfSelected = 0;
+    kfSelectedObj = kf[0];
+    kfSel = new Set([kf[0]]);
+    kfTime = kf[0].t;
+    kfSyncTextarea();
+    kfSyncInputs();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfNudge(dir) {
+    if (!kfSel || kfSel.size === 0) return;
+    const step = (kfGridDiv && kfGridDiv > 1) ? (1 / kfGridDiv) : 0.01;
+    let delta = (dir < 0 ? -step : step);
+    // compute bounds like group drag
+    let dMin = -Infinity, dMax = Infinity;
+    for (let i = 0; i < kf.length; i++) {
+      const obj = kf[i];
+      if (!kfSel.has(obj)) continue;
+      const origT = obj.t;
+      const leftT = (i > 0 && !kfSel.has(kf[i - 1])) ? (kf[i - 1].t + 0.001) : -Infinity;
+      const rightT = (i < kf.length - 1 && !kfSel.has(kf[i + 1])) ? (kf[i + 1].t - 0.001) : Infinity;
+      dMin = Math.max(dMin, leftT - origT);
+      dMax = Math.min(dMax, rightT - origT);
+    }
+    delta = Math.max(dMin, Math.min(dMax, delta));
+    if (!Number.isFinite(delta) || delta === 0) return;
+    for (const obj of kfSel) {
+      obj.t = Math.max(0, Math.min(1, obj.t + delta));
+    }
+    // Re-sort and restore selection/primary
+    const selObjs = new Set(kfSel);
+    const primary = kfSelectedObj;
+    kf.sort((a, b) => a.t - b.t);
+    kfSel = new Set(kf.filter(obj => selObjs.has(obj)));
+    kfSelected = Math.max(0, kf.findIndex(p => p === primary));
+    if (kfSelected < 0) { kfSelected = 0; kfSelectedObj = kf[0]; kfSel = new Set([kf[0]]); }
+    else kfSelectedObj = kf[kfSelected];
+    kfTime = kfSelectedObj.t;
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  }
+
+  function kfApplySnap(t) {
+    if (!kfSnapEnabled) return Math.max(0, Math.min(1, t));
+    const anchors = [0, 0.25, 0.5, 0.75, 1];
+    const step = (kfGridDiv && kfGridDiv > 1) ? 1 / kfGridDiv : 0;
+    let eps = kfSnapEpsBase;
+    if (step > 0) eps = Math.max(0.005, Math.min(0.5 * step, 0.02));
+    let best = t;
+    let bestDiff = Infinity;
+    // Grid snap
+    if (step > 0) {
+      const nearest = Math.round(t / step) * step;
+      const diff = Math.abs(nearest - t);
+      if (diff < bestDiff && diff <= eps) { best = nearest; bestDiff = diff; }
+    }
+    // Anchor snap
+    for (const a of anchors) {
+      const diff = Math.abs(a - t);
+      if (diff < bestDiff && diff <= eps) { best = a; bestDiff = diff; }
+    }
+    return Math.max(0, Math.min(1, best));
+  }
+
+  function kfSetTime(t) {
+    kfTime = Math.max(0, Math.min(1, t));
+    if (kfTimeLabel) kfTimeLabel.textContent = `t=${kfTime.toFixed(2)}`;
+    kfRenderAll();
+  }
+
+  function kfSample(arr, t, easeMode) {
+    if (!Array.isArray(arr) || arr.length === 0) return { x: 0, y: 0, r: 0, s: 1 };
+    const a0 = arr[0], a1 = arr[arr.length - 1];
+    if (t <= a0.t) return { x: a0.x, y: a0.y, r: a0.r, s: a0.s };
+    if (t >= a1.t) return { x: a1.x, y: a1.y, r: a1.r, s: a1.s };
+    let i = 0;
+    while (i < arr.length - 1 && t > arr[i + 1].t) i++;
+    const a = arr[i], b = arr[Math.min(i + 1, arr.length - 1)];
+    const span = Math.max(1e-6, b.t - a.t);
+    let lt = (t - a.t) / span;
+    const segEase = (typeof a.e === "string" ? a.e : easeMode);
+    if (segEase === "bezier" && Array.isArray(a.b) && a.b.length === 4) {
+      lt = cubicBezierYForX(lt, a.b[0], a.b[1], a.b[2], a.b[3]);
+    } else if (segEase === "step") {
+      lt = 0; // hold
+    } else {
+      lt = kfEase(lt, segEase);
+    }
+    const lerp = (u, v) => u + (v - u) * lt;
+    return { x: lerp(a.x, b.x), y: lerp(a.y, b.y), r: lerp(a.r, b.r), s: Math.max(0.01, lerp(a.s, b.s)) };
+  }
+
+  function kfRenderTimeline() {
+    if (!kfTimelineEl) return;
+    const ctx = kfTimelineEl.getContext("2d");
+    const w = kfTimelineEl.width, h = kfTimelineEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // background
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    // axis baseline
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(8, h / 2);
+    ctx.lineTo(w - 8, h / 2);
+    ctx.stroke();
+
+    // optional grid
+    if (kfSnapEnabled) {
+      // grid divisions
+      const step = (kfGridDiv && kfGridDiv > 1) ? 1 / kfGridDiv : 0;
+      if (step > 0) {
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = 1;
+        for (let t = 0; t <= 1 + 1e-9; t += step) {
+          const x = 8 + (w - 16) * t;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      }
+      // major anchors
+      const anchors = [0, 0.25, 0.5, 0.75, 1];
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.lineWidth = 1.5;
+      anchors.forEach((t) => {
+        const x = 8 + (w - 16) * t;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      });
+    }
+
+    // ticks
+    ctx.fillStyle = "#95a3b3";
+    for (let i = 0; i <= 10; i++) {
+      const x = 8 + (w - 16) * (i / 10);
+      ctx.fillRect(x, h / 2 - 8, 1, 16);
+    }
+    // keyframes
+    for (let i = 0; i < kf.length; i++) {
+      const x = 8 + (w - 16) * kf[i].t;
+      const sel = kfSel && kfSel.has(kf[i]);
+      ctx.beginPath();
+      ctx.arc(x, h / 2, i === kfSelected ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = i === kfSelected ? "#00f5d4" : (sel ? "#7fb5ff" : "#5b8def");
+      ctx.fill();
+      if (sel && i !== kfSelected) {
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, h / 2, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "#0b0f14";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // playhead
+    const px = 8 + (w - 16) * kfTime;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillRect(px, 0, 1, h);
+  }
+
+  function kfRenderStage() {
+    if (!kfStageEl) return;
+    const ctx = kfStageEl.getContext("2d");
+    const w = kfStageEl.width, h = kfStageEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // bg grid
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < w; x += 24) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = 0; y < h; y += 24) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    // stage center
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.beginPath(); ctx.moveTo(w/2, 0); ctx.lineTo(w/2, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+    // sample transform at current time
+    const ease = layerAnimEaseEl.value || "linear";
+    const samp = kfSample(kf, kfTime, ease);
+
+    // build a pseudo-layer from current form values
+    const type = layerTypeEl.value;
+    const color = layerRectColorEl?.value || "#5b8def";
+    const text = layerTextEl?.value || "Text";
+    const textSize = parseInt(layerSizeEl?.value || "24", 10);
+    const logoUrl = layerLogoUrlEl?.value || "";
+    const logoSize = parseInt(layerLogoSizeEl?.value || "64", 10);
+    const imageUrl = layerImageUrlEl?.value || "";
+    const imageW = parseInt(layerImageWidthEl?.value || "256", 10);
+    const imageH = parseInt(layerImageHeightEl?.value || "256", 10);
+    const rectW = parseInt(layerRectWidthEl?.value || "200", 10);
+    const rectH = parseInt(layerRectHeightEl?.value || "100", 10);
+    const rectR = parseInt(layerRectRadiusEl?.value || "12", 10);
+    const arcR = parseInt(layerRadiusEl?.value || "26", 10);
+    const arcTh = parseInt(layerThicknessEl?.value || "6", 10);
+    const barW = parseInt(layerBarWidthEl?.value || "400", 10);
+    const barH = parseInt(layerBarHeightEl?.value || "20", 10);
+    const barColor = layerBarColorEl?.value || "#00F5D4";
+    const orient = (layerBarOrientEl?.value === "v") ? "v" : "h";
+
+    const cx = Math.round(w / 2 + samp.x);
+    const cy = Math.round(h / 2 + samp.y);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((samp.r * Math.PI) / 180);
+    ctx.scale(samp.s, samp.s);
+
+    ctx.lineWidth = 2;
+
+    if (type === "text") {
+      ctx.font = `${textSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      const grad = ctx.createLinearGradient(-100, -textSize / 2, 100, textSize / 2);
+      grad.addColorStop(0, "#00f5d4");
+      grad.addColorStop(1, "#5b8def");
+      ctx.fillStyle = grad;
+      ctx.fillText(text, 0, 0);
+    } else if (type === "logo" && logoUrl) {
+      let img = stageImgCache.get(logoUrl);
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { stageImgCache.set(logoUrl, img); kfRenderStage(); };
+        img.onerror = () => { stageImgCache.delete(logoUrl); };
+        img.src = logoUrl;
+      }
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, -logoSize / 2, -logoSize / 2, logoSize, logoSize);
+      } else {
+        ctx.fillStyle = "rgba(91,141,239,0.15)";
+        ctx.strokeStyle = "#5b8def";
+        ctx.fillRect(-logoSize / 2, -logoSize / 2, logoSize, logoSize);
+        ctx.strokeRect(-logoSize / 2, -logoSize / 2, logoSize, logoSize);
+      }
+    } else if (type === "image" && imageUrl) {
+      let img = stageImgCache.get(imageUrl);
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { stageImgCache.set(imageUrl, img); kfRenderStage(); };
+        img.onerror = () => { stageImgCache.delete(imageUrl); };
+        img.src = imageUrl;
+      }
+      if (img && img.complete && img.naturalWidth) {
+        ctx.drawImage(img, -imageW / 2, -imageH / 2, imageW, imageH);
+      } else {
+        ctx.fillStyle = "rgba(91,141,239,0.15)";
+        ctx.strokeStyle = "#5b8def";
+        ctx.fillRect(-imageW / 2, -imageH / 2, imageW, imageH);
+        ctx.strokeRect(-imageW / 2, -imageH / 2, imageW, imageH);
+      }
+    } else if (type === "rectangle") {
+      const x = -rectW / 2, y = -rectH / 2, r = Math.max(0, rectR);
+      ctx.fillStyle = color || "#ffffff";
+      if (r <= 0) {
+        ctx.fillRect(x, y, rectW, rectH);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + rectW - r, y);
+        ctx.quadraticCurveTo(x + rectW, y, x + rectW, y + r);
+        ctx.lineTo(x + rectW, y + rectH - r);
+        ctx.quadraticCurveTo(x + rectW, y + rectH, x + rectW - r, y + rectH);
+        ctx.lineTo(x + r, y + rectH);
+        ctx.quadraticCurveTo(x, y + rectH, x, y + rectH - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (type === "progressArc") {
+      ctx.lineWidth = Math.max(1, arcTh);
+      ctx.strokeStyle = "#5b8def";
+      ctx.beginPath();
+      ctx.arc(0, 0, arcR, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (type === "progressBar") {
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(-barW / 2, -barH / 2, barW, barH);
+      ctx.fillStyle = barColor || "#00F5D4";
+      if (orient === "h") {
+        ctx.fillRect(-barW / 2, -barH / 2, Math.max(1, Math.floor(barW * 0.6)), barH);
+      } else {
+        ctx.fillRect(-barW / 2, -barH / 2, barW, Math.max(1, Math.floor(barH * 0.6)));
+      }
+    } else {
+      // fallback proxy rect
+      const rw = 200, rh = 120;
+      ctx.fillStyle = "rgba(91,141,239,0.15)";
+      ctx.strokeStyle = "#5b8def";
+      ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+      ctx.strokeRect(-rw / 2, -rh / 2, rw, rh);
+    }
+
+    ctx.restore();
+
+    // keyframe handles
+    for (let i = 0; i < kf.length; i++) {
+      const p = kf[i];
+      const x = w / 2 + p.x;
+      const y = h / 2 + p.y;
+      ctx.beginPath();
+      ctx.arc(x, y, i === kfSelected ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = i === kfSelected ? "#00f5d4" : "#5b8def";
+      ctx.fill();
+      ctx.strokeStyle = "#0b0f14";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function kfRenderCurves() {
+    if (!kfCurvesEl) return;
+    const ctx = kfCurvesEl.getContext("2d");
+    const w = kfCurvesEl.width, h = kfCurvesEl.height;
+    ctx.clearRect(0, 0, w, h);
+    // background
+    ctx.fillStyle = "#0b0f14";
+    ctx.fillRect(0, 0, w, h);
+    // axes
+    ctx.strokeStyle = "#1f2a37";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(8, h / 2);
+    ctx.lineTo(w - 8, h / 2);
+    ctx.stroke();
+
+    // Sample curves
+    const ease = layerAnimEaseEl.value || "linear";
+    const N = Math.max(2, Math.floor(w / 3));
+    const xs = new Array(N), ys = new Array(N), rs = new Array(N), ss = new Array(N);
+
+    // Precompute ranges from keyframes to scale curves more meaningfully
+    const minmax = (arr, key) => {
+      let mn = Infinity, mx = -Infinity;
+      for (const p of arr) { const v = p[key]; if (Number.isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; } }
+      if (!isFinite(mn) || !isFinite(mx) || mn === mx) { mn = -1; mx = 1; }
+      return [mn, mx];
+    };
+    const [minX, maxX] = minmax(kf, "x");
+    const [minY, maxY] = minmax(kf, "y");
+    const [minR, maxR] = minmax(kf, "r");
+    const [minS, maxS] = minmax(kf, "s");
+
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      const smp = kfSample(kf, t, ease);
+      xs[i] = smp.x;
+      ys[i] = smp.y;
+      rs[i] = smp.r;
+      ss[i] = smp.s;
+    }
+
+    function drawCurve(vals, mn, mx, color) {
+      const pad = 8;
+      const innerW = w - pad * 2;
+      const innerH = h - pad * 2;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const t = i / (N - 1);
+        const x = pad + innerW * t;
+        const norm = (vals[i] - mn) / Math.max(1e-6, (mx - mn)); // 0..1
+        const y = pad + innerH * (1 - norm);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    if (kfShowX) drawCurve(xs, minX, maxX, "#00f5d4"); // x
+    if (kfShowY) drawCurve(ys, minY, maxY, "#5b8def"); // y
+    if (kfShowR) drawCurve(rs, minR, maxR, "#ffd166"); // r
+    if (kfShowS) drawCurve(ss, minS, maxS, "#06d6a0"); // s
+
+    // playhead
+    const px = 8 + (w - 16) * kfTime;
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillRect(px, 0, 1, h);
+  }
+
+  function kfRenderAll() {
+    kfRenderTimeline();
+    kfRenderCurves();
+    kfRenderStage();
+  }
+
+  function kfStartPlay() {
+    kfPlayDur = Math.max(0.1, parseFloat(layerAnimDurEl.value || "4") || 4);
+    kfPlay = true;
+    kfPlayStart = performance.now() - kfTime * kfPlayDur * 1000;
+    requestAnimationFrame(kfTick);
+  }
+
+  function kfStopPlay() {
+    kfPlay = false;
+  }
+
+  function kfTick() {
+    if (!kfPlay) return;
+    const now = performance.now();
+    const loop = !!layerAnimLoopEl.checked;
+    const elapsed = (now - kfPlayStart) / 1000;
+    let t = elapsed / kfPlayDur;
+    if (loop) t = t - Math.floor(t);
+    t = Math.max(0, Math.min(1, t));
+    kfSetTime(t);
+    requestAnimationFrame(kfTick);
+  }
+
+  // Timeline interactions
+  if (kfTimelineEl) {
+    kfTimelineEl.addEventListener("mousedown", (e) => {
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const t = kfApplySnap(ts);
+      // check if near a keyframe
+      const idx = kf.findIndex(p => Math.abs((8 + (w - 16) * p.t) - x) < 8);
+      const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+      if (idx >= 0) {
+        if (multi) {
+          if (e.shiftKey) kfSelectRange(idx);
+          else kfToggleSelect(idx);
+        } else {
+          kfSelectOnly(idx);
+        }
+        // start drag (group if multiple selected)
+        kfDragIdx = idx;
+        kfDragging = true;
+        kfDragGroup = (kfSel.size > 1);
+        if (kfDragGroup) {
+          kfDragOrig = new Map();
+          for (const obj of kfSel) {
+            kfDragOrig.set(obj, obj.t);
+          }
+        } else {
+          kfDragOrig = null;
+        }
+      } else {
+        if (!multi) {
+          kfClearSelection();
+          if (kfSelected >= 0) kfSelectOnly(kfSelected);
+        }
+        kfSetTime(t);
+      }
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!kfDragging || kfDragIdx < 0) return;
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      let t = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      t = kfApplySnap(t);
+
+      if (!kfDragGroup) {
+        // single point drag
+        const left = kf[kfDragIdx - 1]?.t ?? 0;
+        const right = kf[kfDragIdx + 1]?.t ?? 1;
+        if (kfDragIdx > 0) t = Math.max(left + 0.001, t);
+        if (kfDragIdx < kf.length - 1) t = Math.min(right - 0.001, t);
+        kf[kfDragIdx].t = t;
+        kfTime = t;
+      } else {
+        // group drag by delta, constrained by neighbors
+        const anchorObj = kf[kfDragIdx];
+        const origAnchorT = kfDragOrig.get(anchorObj);
+        if (typeof origAnchorT !== "number") return;
+        let delta = t - origAnchorT;
+
+        // compute clamp for all selected points
+        let dMin = -Infinity, dMax = Infinity;
+        for (let i = 0; i < kf.length; i++) {
+          const obj = kf[i];
+          if (!kfSel.has(obj)) continue;
+          const origT = kfDragOrig.get(obj);
+          const leftT = (i > 0 && !kfSel.has(kf[i - 1])) ? (kf[i - 1].t + 0.001) : -Infinity;
+          const rightT = (i < kf.length - 1 && !kfSel.has(kf[i + 1])) ? (kf[i + 1].t - 0.001) : Infinity;
+          dMin = Math.max(dMin, leftT - origT);
+          dMax = Math.min(dMax, rightT - origT);
+        }
+        delta = Math.max(dMin, Math.min(dMax, delta));
+        // apply delta to all selected
+        for (let i = 0; i < kf.length; i++) {
+          const obj = kf[i];
+          if (!kfSel.has(obj)) continue;
+          const origT = kfDragOrig.get(obj);
+          obj.t = Math.max(0, Math.min(1, origT + delta));
+        }
+        kfTime = Math.max(0, Math.min(1, origAnchorT + delta));
+      }
+      kfSyncInputs();
+      kfRenderAll();
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (kfDragging) {
+        kfDragging = false;
+        kfDragIdx = -1;
+        kfDragGroup = false;
+        kfDragOrig = null;
+        // Keep selection by object identity, then sort and restore primary index
+        const selObjs = new Set(kfSel);
+        const primary = kfSelectedObj;
+        kf.sort((a, b) => a.t - b.t);
+        kfSel = new Set(kf.filter(obj => selObjs.has(obj)));
+        kfSelected = Math.max(0, kf.findIndex(p => p === primary));
+        if (kfSelected < 0) {
+          kfSelected = 0;
+          kfSelectedObj = kf[0];
+          kfSel = new Set([kf[0]]);
+        } else {
+          kfSelectedObj = kf[kfSelected];
+        }
+        kfSyncTextarea();
+        applyLayerForm();
+      }
+    });
+
+    kfTimelineEl.addEventListener("dblclick", (e) => {
+      const rect = kfTimelineEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const w = kfTimelineEl.width;
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, w - 16)));
+      const t = kfApplySnap(ts);
+      kfAddAt(t);
+    });
+
+    kfTimelineEl.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      // delete selection if any, else delete primary
+      if (kfSel && kfSel.size > 1) {
+        deleteSelection();
+      } else if (kfSelected >= 0) {
+        kfDeleteSelected();
+      }
+    });
+  }
+
+  // Stage interactions (drag selected point position)
+  if (kfStageEl) {
+    let stDragging = false;
+    kfStageEl.addEventListener("mousedown", (e) => {
+      const rect = kfStageEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // pick nearest point
+      let idx = -1, best = 9999;
+      for (let i = 0; i < kf.length; i++) {
+        const px = kfStageEl.width / 2 + kf[i].x;
+        const py = kfStageEl.height / 2 + kf[i].y;
+        const d = Math.hypot(px - x, py - y);
+        if (d < best && d < 14) { best = d; idx = i; }
+      }
+      if (idx >= 0) {
+        kfSelect(idx);
+      }
+      stDragging = true;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!stDragging || kfSelected < 0) return;
+      const rect = kfStageEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const relX = x - kfStageEl.width / 2;
+      const relY = y - kfStageEl.height / 2;
+      kf[kfSelected].x = Math.round(relX);
+      kf[kfSelected].y = Math.round(relY);
+      kfSyncInputs();
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+    window.addEventListener("mouseup", () => { stDragging = false; });
+  }
+
+  // Buttons and inputs
+  if (kfPlayBtn) kfPlayBtn.addEventListener("click", () => kfStartPlay());
+  if (kfStopBtn) kfStopBtn.addEventListener("click", () => kfStopPlay());
+  if (kfAddBtn) kfAddBtn.addEventListener("click", () => kfAddAt(kfTime));
+  if (kfDeleteBtn) kfDeleteBtn.addEventListener("click", () => kfDeleteSelected());
+
+  // Multi-select helpers
+  const kfSelectAllBtn = document.getElementById("kfSelectAll");
+  const kfClearSelBtn = document.getElementById("kfClearSel");
+  const kfDeleteSelBtn = document.getElementById("kfDeleteSel");
+  const kfNudgeLeftBtn = document.getElementById("kfNudgeLeft");
+  const kfNudgeRightBtn = document.getElementById("kfNudgeRight");
+
+  if (kfSelectAllBtn) kfSelectAllBtn.addEventListener("click", () => {
+    kfSel = new Set(kf);
+    if (kfSelected < 0 && kf.length > 0) { kfSelected = 0; kfSelectedObj = kf[0]; }
+    kfRenderTimeline();
+  });
+  if (kfClearSelBtn) kfClearSelBtn.addEventListener("click", () => {
+    if (kfSelected < 0 && kf.length > 0) kfSelected = 0;
+    kfSelected = Math.max(0, Math.min(kf.length - 1, kfSelected));
+    kfSelectedObj = kf[kfSelected];
+    kfSel = new Set([kf[kfSelected]]);
+    kfRenderTimeline();
+  });
+  if (kfDeleteSelBtn) kfDeleteSelBtn.addEventListener("click", () => deleteSelection());
+  if (kfNudgeLeftBtn) kfNudgeLeftBtn.addEventListener("click", () => kfNudge(-1));
+  if (kfNudgeRightBtn) kfNudgeRightBtn.addEventListener("click", () => kfNudge(1));
+
+  // Options
+  if (kfSnapEl) kfSnapEl.addEventListener("change", () => { kfSnapEnabled = !!kfSnapEl.checked; kfRenderTimeline(); });
+  if (kfGridDivEl) kfGridDivEl.addEventListener("input", () => {
+    let v = parseInt(kfGridDivEl.value || "20", 10);
+    if (!Number.isFinite(v)) v = 20;
+    v = Math.max(2, Math.min(200, v));
+    kfGridDiv = v;
+    kfRenderTimeline();
+  });
+  const curveToggle = (el, key) => el && el.addEventListener("change", () => { 
+    if (key === "x") kfShowX = !!el.checked;
+    if (key === "y") kfShowY = !!el.checked;
+    if (key === "r") kfShowR = !!el.checked;
+    if (key === "s") kfShowS = !!el.checked;
+    kfRenderCurves();
+  });
+  curveToggle(kfShowXEl, "x");
+  curveToggle(kfShowYEl, "y");
+  curveToggle(kfShowREl, "r");
+  curveToggle(kfShowSEl, "s");
+
+  // Bezier presets
+  function applyPresetBezier(b) {
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    kf[kfSelected].e = "bezier";
+    kf[kfSelected].b = b.slice(0, 4);
+    if (kfSegEaseEl) kfSegEaseEl.value = "bezier";
+    if (kfBezierBox) kfBezierBox.classList.remove("hidden");
+    kfBezierSyncInputs();
+    kfRenderBezier();
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  }
+  if (kfPresetLinear) kfPresetLinear.addEventListener("click", () => {
+    if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+    delete kf[kfSelected].b;
+    kf[kfSelected].e = "linear";
+    if (kfSegEaseEl) kfSegEaseEl.value = "linear";
+    if (kfBezierBox) kfBezierBox.classList.add("hidden");
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  });
+  if (kfPresetEase) kfPresetEase.addEventListener("click", () => applyPresetBezier([0.25, 0.1, 0.25, 1.0]));
+  if (kfPresetEaseIn) kfPresetEaseIn.addEventListener("click", () => applyPresetBezier([0.42, 0.0, 1.0, 1.0]));
+  if (kfPresetEaseOut) kfPresetEaseOut.addEventListener("click", () => applyPresetBezier([0.0, 0.0, 0.58, 1.0]));
+  if (kfPresetEaseInOut) kfPresetEaseInOut.addEventListener("click", () => applyPresetBezier([0.42, 0.0, 0.58, 1.0]));
+
+  // Segment ease per keyframe (applies from selected KF to next)
+  if (kfSegEaseEl) {
+    kfSegEaseEl.addEventListener("change", () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      const v = kfSegEaseEl.value || "inherit";
+      if (v === "inherit") { delete kf[kfSelected].e; delete kf[kfSelected].b; }
+      else kf[kfSelected].e = v;
+      // toggle bezier UI
+      const showBezier = v === "bezier";
+      if (kfBezierBox) kfBezierBox.classList.toggle("hidden", !showBezier);
+      if (showBezier) {
+        if (!Array.isArray(kf[kfSelected].b) || kf[kfSelected].b.length !== 4) {
+          kf[kfSelected].b = kfBezierDefault();
+        }
+        kfBezierSyncInputs();
+        kfRenderBezier();
+      }
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  }
+
+  // Bezier numeric inputs
+  if (kfBx1El && kfBy1El && kfBx2El && kfBy2El) {
+    const onInput = () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      if (kfSegEaseEl.value !== "bezier") return;
+      kfSetSegBezier(kfBezierFromInputs());
+      kfRenderBezier();
+    };
+    kfBx1El.addEventListener("input", onInput);
+    kfBy1El.addEventListener("input", onInput);
+    kfBx2El.addEventListener("input", onInput);
+    kfBy2El.addEventListener("input", onInput);
+  }
+  if (kfBezierReset) {
+    kfBezierReset.addEventListener("click", () => {
+      if (kfSelected < 0 || kfSelected >= kf.length - 1) return;
+      if (kfSegEaseEl.value !== "bezier") return;
+      const def = kfBezierDefault();
+      kfBx1El.value = def[0].toFixed(2);
+      kfBy1El.value = def[1].toFixed(2);
+      kfBx2El.value = def[2].toFixed(2);
+      kfBy2El.value = def[3].toFixed(2);
+      kfSetSegBezier(def);
+      kfRenderBezier();
+    });
+  }
+
+  // Bezier canvas interactions
+  if (kfBezierEl) {
+    let drag = 0; // 0 none, 1 first handle, 2 second handle
+    const pad = 0; // full canvas used
+    const toNorm = (cx, cy) => {
+      const x = Math.max(0, Math.min(1, cx / kfBezierEl.width));
+      const y = Math.max(0, Math.min(1, 1 - (cy / kfBezierEl.height)));
+      return [x, y];
+    };
+    const handleAt = (mx, my) => {
+      const b = kfGetSegBezier() || kfBezierDefault();
+      const [x1, y1, x2, y2] = b;
+      const hx1 = x1 * kfBezierEl.width, hy1 = (1 - y1) * kfBezierEl.height;
+      const hx2 = x2 * kfBezierEl.width, hy2 = (1 - y2) * kfBezierEl.height;
+      const d1 = Math.hypot(mx - hx1, my - hy1);
+      const d2 = Math.hypot(mx - hx2, my - hy2);
+      if (d1 < 10 && d1 <= d2) return 1;
+      if (d2 < 10 && d2 < d1) return 2;
+      return 0;
+    };
+    kfBezierEl.addEventListener("mousedown", (e) => {
+      if (kfSegEaseEl.value !== "bezier") return;
+      const rect = kfBezierEl.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      drag = handleAt(mx, my);
+      if (drag) e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!drag) return;
+      const rect = kfBezierEl.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const [nx, ny] = toNorm(mx, my);
+      const b = kfGetSegBezier() || kfBezierDefault();
+      if (drag === 1) { b[0] = nx; b[1] = ny; }
+      else { b[2] = nx; b[3] = ny; }
+      kfSetSegBezier(b);
+      if (kfBx1El && kfBy1El && kfBx2El && kfBy2El) {
+        kfBx1El.value = b[0].toFixed(2);
+        kfBy1El.value = b[1].toFixed(2);
+        kfBx2El.value = b[2].toFixed(2);
+        kfBy2El.value = b[3].toFixed(2);
+      }
+      kfRenderBezier();
+    });
+    window.addEventListener("mouseup", () => { drag = 0; });
+  }
+
+  // Curves canvas interactions: click to set time
+  if (kfCurvesEl) {
+    kfCurvesEl.addEventListener("mousedown", (e) => {
+      const rect = kfCurvesEl.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const ts = Math.max(0, Math.min(1, (x - 8) / Math.max(1, kfCurvesEl.width - 16)));
+      const t = kfApplySnap(ts);
+      kfSetTime(t);
+    });
+  }
+
+  if (kfTEl) kfTEl.addEventListener("input", () => {
+    if (kfSelected < 0) return;
+    let t = Math.max(0, Math.min(1, parseFloat(kfTEl.value || "0") || 0));
+    t = kfApplySnap(t);
+    // clamp to neighbors
+    const left = kf[kfSelected - 1]?.t ?? 0;
+    const right = kf[kfSelected + 1]?.t ?? 1;
+    if (kfSelected > 0) t = Math.max(left + 0.001, t);
+    if (kfSelected < kf.length - 1) t = Math.min(right - 0.001, t);
+    kf[kfSelected].t = t;
+    kfTime = t;
+    kf.sort((a, b) => a.t - b.t);
+    kfSelected = Math.max(0, kf.findIndex(p => p.t === t));
+    kfSyncTextarea();
+    kfRenderAll();
+    applyLayerForm();
+  });
+
+  const numUpdaters = [
+    [kfXEl, "x"], [kfYEl, "y"], [kfREl, "r"], [kfSEl, "s"]
+  ];
+  numUpdaters.forEach(([el, key]) => {
+    if (!el) return;
+    el.addEventListener("input", () => {
+      if (kfSelected < 0) return;
+      let val = parseFloat(el.value || "0") || 0;
+      if (key === "s") val = Math.max(0.01, val);
+      kf[kfSelected][key] = val;
+      kfSyncTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  });
+
+  // Keep GUI in sync when user edits JSON directly
+  if (layerAnimKfEl) {
+    layerAnimKfEl.addEventListener("input", () => {
+      kfLoadFromTextarea();
+      kfRenderAll();
+      applyLayerForm();
+    });
+  }
+
+  // Toggle editor visibility with anim type
+  layerAnimTypeEl.addEventListener("change", () => {
+    kfUpdateVisibility();
+  });
+
+  // Initialize visibility
+  kfUpdateVisibility();
+
+  // Initialize options state
+  if (kfSnapEl) kfSnapEnabled = !!kfSnapEl.checked;
+  if (kfGridDivEl) {
+    let v = parseInt(kfGridDivEl.value || "20", 10);
+    kfGridDiv = Number.isFinite(v) ? Math.max(2, Math.min(200, v)) : 20;
+  }
+  if (kfShowXEl) kfShowX = !!kfShowXEl.checked;
+  if (kfShowYEl) kfShowY = !!kfShowYEl.checked;
+  if (kfShowREl) kfShowR = !!kfShowREl.checked;
+  if (kfShowSEl) kfShowS = !!kfShowSEl.checked;
+
+  
+
+  tplExportBtn.addEventListener("click", () => {
+    try {
+      const blob = new Blob([JSON.stringify(templates, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "visualizer_templates.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      tplStatusEl.textContent = "Exported.";
+    } catch {
+      tplStatusEl.textContent = "Export failed.";
+    }
+  });
+
+  tplShareBtn.addEventListener("click", async () => {
+    tplStatusEl.textContent = "Sharing…";
+    try {
+      const res = await fetch("/api/templates_share.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templates)
+      });
+      const data = await res.json();
+      if (data?.success && data?.url) {
+        const link = location.origin + data.url;
+        tplStatusEl.innerHTML = `Shared: <a href="${data.url}" target="_blank">${link}</a>`;
+      } else {
+        tplStatusEl.textContent = "Share failed.";
+      }
+    } catch {
+      tplStatusEl.textContent = "Share failed.";
+    }
+  });
+
+  tplImportInput.addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) throw new Error("Invalid JSON");
+      const allowedModes = ["bars","radial","waveform","particles","waterfall","spectrogram","wavefall","circlebars","circularwave","mirrorwave","mirrorspectrum"];
+      const validPos = ["top-left","top-right","bottom-left","bottom-right"];
+      templates = arr.map((tpl) => {
+        const name = typeof tpl.name === "string" ? tpl.name : "Untitled";
+        const mode = allowedModes.includes(tpl.mode) ? tpl.mode : "bars";
+        const fg = typeof tpl.fg === "string" ? tpl.fg : "#00F5D4";
+        const bg = typeof tpl.bg === "string" ? tpl.bg : "#0B0F14";
+        const scale = Number.isFinite(tpl.scale) ? tpl.scale : 1.0;
+        const colorMap = typeof tpl.colorMap === "string" ? tpl.colorMap : "gradient";
+        const overlayTitle = !!tpl.overlayTitle;
+        const progressArc = !!tpl.progressArc;
+        const particleTrails = !!tpl.particleTrails;
+        const particleLinks = !!tpl.particleLinks;
+        const logoUrl = typeof tpl.logoUrl === "string" ? tpl.logoUrl : "";
+        const logoSize = Number.isFinite(tpl.logoSize) ? tpl.logoSize : 64;
+        const logoPosition = validPos.includes(tpl.logoPosition) ? tpl.logoPosition : "top-left";
+        const to = tpl.textOverlay || {};
+        const textOverlay = {
+          text: typeof to.text === "string" ? to.text : "",
+          size: Number.isFinite(to.size) ? to.size : 24,
+          position: typeof to.position === "string" ? to.position : "bottom-left"
+        };
+        // Layers
+        let layers = [];
+        if (Array.isArray(tpl.layers)) {
+          layers = tpl.layers.map((l) => {
+            const type = l && typeof l.type === "string" ? l.type : "";
+            const position = validPos.includes(l?.position) ? l.position : "top-left";
+            const opacity = Math.max(0, Math.min(1, parseFloat(l?.opacity) || 1));
+            const blend = typeof l?.blend === "string" ? l.blend : "normal";
+            const la = l && typeof l.anim === "object" ? l.anim : {};
+            // sanitize keyframes if present
+            let kf = [];
+            if (Array.isArray(la.kf)) {
+              kf = la.kf.map((p) => {
+                const e = typeof p?.e === "string" ? p.e : undefined;
+                const b = Array.isArray(p?.b) && p.b.length === 4 ? p.b.map((v) => Math.max(0, Math.min(1, parseFloat(v) || 0))) : undefined;
+                return {
+                  t: Math.max(0, Math.min(1, parseFloat(p?.t) || 0)),
+                  x: Number.isFinite(p?.x) ? p.x : 0,
+                  y: Number.isFinite(p?.y) ? p.y : 0,
+                  r: Number.isFinite(p?.r) ? p.r : 0,
+                  s: Number.isFinite(p?.s) ? Math.max(0.01, p.s) : 1,
+                  ...(e ? { e } : {}),
+                  ...(b ? { b } : {})
+                };
+              }).sort((a, b) => a.t - b.t);
+            }
+            const easeVal = typeof la.ease === "string" ? la.ease : "linear";
+            const durVal = Number.isFinite(la.dur) ? Math.max(0.1, Math.min(120, la.dur)) : 4;
+            const anim = {
+              type: (typeof la.type === "string" ? la.type : "none"),
+              speed: Number.isFinite(la.speed) ? la.speed : 0.5,
+              amp: Number.isFinite(la.amp) ? la.amp : 10,
+              ease: easeVal,
+              dur: durVal,
+              loop: !!la.loop,
+              kf
+            };
+            if (type === "text") {
+              return { type, position, opacity, blend, anim, text: typeof l.text === "string" ? l.text : "", size: Number.isFinite(l.size) ? l.size : 24 };
+            } else if (type === "logo") {
+              return { type, position, opacity, blend, anim, url: typeof l.url === "string" ? l.url : "", size: Number.isFinite(l.size) ? l.size : 64 };
+            } else if (type === "image") {
+              return {
+                type, position, opacity, blend, anim,
+                url: typeof l.url === "string" ? l.url : "",
+                width: Number.isFinite(l.width) ? l.width : 256,
+                height: Number.isFinite(l.height) ? l.height : 256,
+                tint: typeof l.tint === "string" ? l.tint : "#ffffff",
+                alpha: Number.isFinite(l.alpha) ? Math.max(0, Math.min(1, l.alpha)) : 0
+              };
+            } else if (type === "progressArc") {
+              return { type, position, opacity, blend, anim, radius: Number.isFinite(l.radius) ? l.radius : 26, thickness: Number.isFinite(l.thickness) ? l.thickness : 6 };
+            } else if (type === "rectangle") {
+              return { type, position, opacity, blend, anim, width: Number.isFinite(l.width) ? l.width : 200, height: Number.isFinite(l.height) ? l.height : 100, radius: Number.isFinite(l.radius) ? l.radius : 12, color: typeof l.color === "string" ? l.color : "#ffffff" };
+            } else if (type === "progressBar") {
+              return { type, position, opacity, blend, anim, width: Number.isFinite(l.width) ? l.width : 400, height: Number.isFinite(l.height) ? l.height : 20, color: typeof l.color === "string" ? l.color : "#00F5D4", orient: (l.orient === "v") ? "v" : "h" };
+            }
+            return null;
+          }).filter(Boolean);
+        }
+        // Color stops
+        let colorStops = [];
+        if (Array.isArray(tpl.colorStops)) {
+          colorStops = tpl.colorStops.map((s) => {
+            const offset = Math.max(0, Math.min(1, parseFloat(s.offset) || 0));
+            const color = typeof s.color === "string" ? s.color : "#ffffff";
+            return { offset, color };
+          }).sort((a, b) => a.offset - b.offset);
+        }
+        return { name, mode, fg, bg, scale, colorMap, colorStops, overlayTitle, progressArc, particleTrails, particleLinks, logoUrl, logoSize, logoPosition, textOverlay, layers };
+      });
+      selectedIdx = templates.length ? 0 : -1;
+      renderList();
+      if (templates.length) selectIndex(0);
+      await saveTemplatesToServer();
+      tplStatusEl.textContent = "Imported.";
+      e.target.value = "";
+    } catch {
+      tplStatusEl.textContent = "Import failed.";
+    }
+  });
+
+  window.TemplatesManager = {
+    open: async () => {
+      tplStatusEl.textContent = "";
+      modal.classList.remove("hidden");
+      await loadTemplatesFromServer();
+    },
+    close: () => modal.classList.add("hidden")
+  };
+})();
