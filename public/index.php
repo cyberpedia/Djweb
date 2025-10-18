@@ -1,12 +1,17 @@
 <?php
-// Basic index file serving the Avee Web UI.
+$__base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+$__apiBase = rtrim(preg_replace('~/public$~', '', $__base), '/');
 ?><!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Avee Web – PHP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="/assets/css/style.css" rel="stylesheet">
+  <link href="<?= $__base ?>/assets/css/style.css" rel="stylesheet">
+  <script>
+    window.APP_BASE = "<?= $__base ?>";
+    window.API_BASE = "<?= $__apiBase ?>";
+  </script>
 </head>
 <body>
   <header class="app-header">
@@ -140,7 +145,7 @@
           <input type="checkbox" id="progressArc" checked>
 
           <label>Logo URL</label>
-          <input type="text" id="logoUrl" placeholder="/assets/logo.png">
+          <input type="text" id="logoUrl" placeholder="<?= $__base ?>/assets/logo.png">
 
           <label>Logo Size</label>
           <input type="number" id="logoSize" value="64" min="16" max="512">
@@ -330,7 +335,7 @@
           <label><input type="checkbox" id="tplParticleLinks"> Particle Links</label>
 
           <label>Logo URL</label>
-          <input type="text" id="tplLogoUrl" placeholder="/assets/logo.png">
+          <input type="text" id="tplLogoUrl" placeholder="<?= $__base ?>/assets/logo.png">
 
           <label>Logo Size</label>
           <input type="number" id="tplLogoSize" value="64" min="16" max="512">
@@ -498,14 +503,14 @@
 
               <div class="layer-logo-fields">
                 <label>Logo URL</label>
-                <input type="text" id="layerLogoUrl" placeholder="/assets/logo.png">
+                <input type="text" id="layerLogoUrl" placeholder="<?= $__base ?>/assets/logo.png">
                 <label>Size</label>
                 <input type="number" id="layerLogoSize" value="64" min="16" max="512">
               </div>
 
               <div class="layer-image-fields">
                 <label>Image URL</label>
-                <input type="text" id="layerImageUrl" placeholder="/assets/image.png">
+                <input type="text" id="layerImageUrl" placeholder="<?= $__base ?>/assets/image.png">
                 <label>Width</label>
                 <input type="number" id="layerImageWidth" value="256" min="1" max="4096">
                 <label>Height</label>
@@ -566,9 +571,9 @@
     </div>
   </div>
 
-  <script src="/assets/js/equalizer.js"></script>
-  <script src="/assets/js/visualizer.js"></script>
-  <script src="/assets/js/player.js"></script>
-  <script src="/assets/js/templates.js"></script>
+  <script src="<?= $__base ?>/assets/js/equalizer.js"></script>
+  <script src="<?= $__base ?>/assets/js/visualizer.js"></script>
+  <script src="<?= $__base ?>/assets/js/player.js"></script>
+  <script src="<?= $__base ?>/assets/js/templates.js"></script>
 </body>
 </html>

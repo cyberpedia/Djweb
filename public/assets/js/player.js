@@ -30,6 +30,10 @@
   const bgColorEl = document.getElementById("bgColor");
   const vizModeEl = document.getElementById("vizMode");
   const resolutionEl = document.getElementById("resolution");
+
+  const APP_BASE = (typeof window !== "undefined" && window.APP_BASE) ? window.APP_BASE : "";
+  const API_BASE = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : "";
+  const withBase = (p) => (APP_BASE && typeof p === "string" && p.startsWith("/")) ? (APP_BASE + p) : p;
   const showTitleEl = document.getElementById("showTitle");
   const progressArcEl = document.getElementById("progressArc");
   const logoUrlEl = document.getElementById("logoUrl");
@@ -370,10 +374,10 @@
         try {
           const form = new FormData();
           form.append("audio", file, file.name);
-          const res = await fetch("/api/upload.php", { method: "POST", body: form });
+          const res = await fetch(API_BASE + "/api/upload.php", { method: "POST", body: form });
           const data = await res.json();
           if (data?.success && data?.path) {
-            url = data.path;
+            url = withBase(data.path);
             uploaded = true;
           }
         } catch (err) {
@@ -768,7 +772,7 @@
     ensureAudioContext();
 
     const inactive = getInactive();
-    inactive.el.src = t.url;
+    inactive.el.src = withBase(t.url);
     try {
       await inactive.el.play();
     } catch (e) {
@@ -887,12 +891,12 @@
       form.append("loudnorm", exportLoudnormEl.value || "off");
 
       try {
-        const res = await fetch("/api/export.php", { method: "POST", body: form });
+        const res = await fetch(API_BASE + "/api/export.php", { method: "POST", body: form });
         const data = await res.json();
         if (data?.success) {
-          const links = [];
-          if (data.webm) links.push(`<a href="${data.webm}" target="_blank">WebM</a>`);
-          if (data.mp4) links.push(`<a href="${data.mp4}" target="_blank">MP4</a>`);
+            const links = [];
+            const mk = (p) => (p && typeof p === "string" && p.startsWith("/")) ? (APP_BASE + p) : p;
+            if (data.webmef="${data.mp4}" target="_blank">MP4</a>`);
           exportStatusEl.innerHTML = "Saved: " + links.join(" · ");
         } else {
           exportStatusEl.textContent = "Upload failed.";

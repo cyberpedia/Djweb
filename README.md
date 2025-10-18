@@ -49,6 +49,31 @@ Getting Started
   php -S localhost:8000 -t public
 - Visit http://localhost:8000
 
+2b) Run on XAMPP/LAMP (Apache)
+- Copy the whole project folder into your web root:
+  - XAMPP (Windows/macOS): htdocs (e.g., C:\\xampp\\htdocs\\AveeWeb)
+  - LAMP (Linux): /var/www/html (e.g., /var/www/html/AveeWeb)
+- Ensure Apache’s mod_rewrite is enabled and .htaccess allowed:
+  - XAMPP usually has this enabled by default.
+  - LAMP: in your site config (e.g., /etc/apache2/sites-available/000-default.conf), inside the Directory block for your DocumentRoot:
+      AllowOverride All
+    then: sudo a2enmod rewrite && sudo systemctl restart apache2
+- Visit the app at:
+  - http://localhost/AveeWeb/
+- Make sure writable directories exist and are writable by the web server:
+  - Linux:
+      mkdir -p storage/templates storage/shares public/uploads/audio public/uploads/exports
+      sudo chown -R www-data:www-data storage public/uploads
+      sudo chmod -R 775 storage public/uploads
+  - Windows (XAMPP): ensure the folders exist; ACLs usually allow writes by default.
+- Notes:
+  - The app supports being served from a subfolder. All asset/API paths are automatically based on the folder.
+  - The provided project-root .htaccess routes:
+    - /AveeWeb/assets → /AveeWeb/public/assets
+    - /AveeWeb/uploads → /AveeWeb/public/uploads
+    - /AveeWeb/ → /AveeWeb/public/index.php
+  - API endpoints are available under /AveeWeb/api.
+
 3) Usage
 - Add tracks by dropping files or using the “Add Audio” button.
 - Create a playlist and play tracks.

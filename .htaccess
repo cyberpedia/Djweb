@@ -1,0 +1,22 @@
+# Avee Web root .htaccess
+# Enables running from a subfolder (XAMPP/LAMP) by routing /assets and /uploads to /public
+# and sending / (root) to public/index.php. API endpoints remain at /api.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# If the request is for a real file/dir, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route asset and upload URLs to public/
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+# Route site root and /index.php to public/index.php
+RewriteRule ^$ public/index.php [L]
+RewriteRule ^index\.php$ public/index.php [L]
+</IfModule>

@@ -18,6 +18,9 @@ function startVisualizerLoop(analyser, canvas, options) {
   const freqData = new Uint8Array(bufferLength);
   const timeData = new Uint8Array(bufferLength);
 
+  const BASE = (typeof window !== "undefined" && window.APP_BASE) ? window.APP_BASE : "";
+  const withBase = (p) => (p && p.charAt(0) === "/" && BASE) ? (BASE + p) : p;
+
   function hexToRgb(hex) {
     const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
     if (!m) return [0, 0, 0];
@@ -668,7 +671,8 @@ function startVisualizerLoop(analyser, canvas, options) {
     }
 
     // Logo overlay
-    const logoUrl = options.logoUrl || "";
+    const rawLogo = options.logoUrl || "";
+    const logoUrl = withBase(rawLogo);
     if (logoUrl !== lastLogoUrl) {
       lastLogoUrl = logoUrl;
       logoImg = null;
@@ -746,13 +750,14 @@ function startVisualizerLoop(analyser, canvas, options) {
           ctx.fillText(layer.text, -w / 2, -h / 2);
           ctx.restore();
         } else if (type === "logo" && layer.url) {
-          let img = imageCache.get(layer.url);
+          const key = withBase(layer.url);
+          let img = imageCache.get(key);
           if (!img) {
             img = new Image();
             img.crossOrigin = "anonymous";
-            img.onload = () => { imageCache.set(layer.url, img); };
-            img.onerror = () => { imageCache.delete(layer.url); };
-            img.src = layer.url;
+            img.onload = () => { imageCache.set(key, img); };
+            img.onerror = () => { imageCache.delete(key); };
+            img.src = key;
           }
           if (img && img.complete && img.naturalWidth) {
             const size = Math.max(16, Math.min(512, parseInt(layer.size || 64, 10)));
@@ -867,13 +872,14 @@ function startVisualizerLoop(analyser, canvas, options) {
           }
           ctx.restore();
         } else if (type === "image" && layer.url) {
-          let img = imageCache.get(layer.url);
+          const key = withBase(layer.url);
+          let img = imageCache.get(key);
           if (!img) {
             img = new Image();
             img.crossOrigin = "anonymous";
-            img.onload = () => { imageCache.set(layer.url, img); };
-            img.onerror = () => { imageCache.delete(layer.url); };
-            img.src = layer.url;
+            img.onload = () => { imageCache.set(key, img); };
+            img.onerror = () => { imageCache.delete(key); };
+            img.src = key;
           }
           if (img && img.complete && img.naturalWidth) {
             const width = Math.max(1, Math.min(canvas.width, parseInt(layer.width || 256, 10)));
@@ -959,7 +965,8 @@ function startVisualizerLoop(analyser, canvas, options) {
 
 async function loadTemplates(selectEl) {
   try {
-    const res = await fetch("/api/templates.php");
+    const base = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : "";
+    const res = await fetch(base + "/api/templates.php");
     if (!res.ok) throw new Error("Templates fetch failed");
     const templates = await res.json();
     selectEl.innerHTML = "";

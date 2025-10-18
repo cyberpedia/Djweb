@@ -142,7 +142,8 @@
 
   async function loadTemplatesFromServer() {
     try {
-      const res = await fetch("/api/templates.php");
+      const base = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : "";
+      const res = await fetch(base + "/api/templates.php");
       if (!res.ok) throw new Error("fetch failed");
       templates = await res.json();
     } catch {
@@ -484,7 +485,8 @@
   async function saveTemplatesToServer() {
     tplStatusEl.textContent = "Saving…";
     try {
-      const res = await fetch("/api/templates_save.php", {
+      const base = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : "";
+      const res = await fetch(base + "/api/templates_save.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(templates)
@@ -1151,7 +1153,10 @@
         img.crossOrigin = "anonymous";
         img.onload = () => { stageImgCache.set(logoUrl, img); kfRenderStage(); };
         img.onerror = () => { stageImgCache.delete(logoUrl); };
-        img.src = logoUrl;
+        {
+          const base = (typeof window !== "undefined" && window.APP_BASE) ? window.APP_BASE : "";
+          img.src = (base && logoUrl && logoUrl.startsWith("/")) ? (base + logoUrl) : logoUrl;
+        }
       }
       if (img && img.complete && img.naturalWidth) {
         ctx.drawImage(img, -logoSize / 2, -logoSize / 2, logoSize, logoSize);
@@ -1168,7 +1173,10 @@
         img.crossOrigin = "anonymous";
         img.onload = () => { stageImgCache.set(imageUrl, img); kfRenderStage(); };
         img.onerror = () => { stageImgCache.delete(imageUrl); };
-        img.src = imageUrl;
+        {
+          const base = (typeof window !== "undefined" && window.APP_BASE) ? window.APP_BASE : "";
+          img.src = (base && imageUrl && imageUrl.startsWith("/")) ? (base + imageUrl) : imageUrl;
+        }
       }
       if (img && img.complete && img.naturalWidth) {
         ctx.drawImage(img, -imageW / 2, -imageH / 2, imageW, imageH);
@@ -1777,15 +1785,17 @@
   tplShareBtn.addEventListener("click", async () => {
     tplStatusEl.textContent = "Sharing…";
     try {
-      const res = await fetch("/api/templates_share.php", {
+      const base = (typeof window !== "undefined" && window.APP_BASE) ? window.APP_BASE : "";
+      const res = await fetch(base + "/api/templates_share.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(templates)
       });
       const data = await res.json();
       if (data?.success && data?.url) {
-        const link = location.origin + data.url;
-        tplStatusEl.innerHTML = `Shared: <a href="${data.url}" target="_blank">${link}</a>`;
+        const url = data.url.startsWith("/") ? (base + data.url) : data.url;
+        const link = location.origin + url;
+        tplStatusEl.innerHTML = `Shared: <a href="${url}" target="_blank">${link}</a>`;
       } else {
         tplStatusEl.textContent = "Share failed.";
       }
