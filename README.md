@@ -44,10 +44,49 @@ Getting Started
 - PHP 8+ (with file_uploads enabled)
 - Optional: FFmpeg on PATH for MP4 transcoding (export.php checks availability)
 
-2) Run locally
+2) Run locally (Built-in PHP server)
 - Start PHP’s built-in server:
   php -S localhost:8000 -t public
 - Visit http://localhost:8000
+
+2b) Run on Apache (XAMPP/LAMP)
+- Prereqs: Apache with mod_rewrite enabled, and AllowOverride All for the project directory
+  - XAMPP: mod_rewrite is enabled by default. In httpd.conf, ensure:
+    LoadModule rewrite_module modules/mod_rewrite.so
+    AllowOverride All (for htdocs or your VirtualHost directory)
+  - Ubuntu/Debian LAMP: sudo a2enmod rewrite && set AllowOverride All for your site’s Directory in Apache config, then sudo systemctl reload apache2
+- Steps:
+  1) Copy or clone this repo into your web root, e.g.:
+     - XAMPP (Windows): C:\xampp\htdocs\AveeWeb
+     - LAMP (Linux): /var/www/html/AveeWeb
+  2) The repo includes a top-level .htaccess that routes requests to /public and maps /assets and /uploads correctly.
+  3) Visit http://localhost/AveeWeb
+- Notes:
+  - If you see raw directory listings or 404s for assets, double-check that:
+    - mod_rewrite is enabled
+    - AllowOverride All is set for your directory
+  - The top-level index.php delegates to public/index.php as a fallback
+
+2c) Run on Nginx (optional)
+- Set your server root to the repo root and add aliases for assets/uploads, or route everything through /public. Example:
+  server {
+    listen 80;
+    server_name localhost;
+    root /var/www/html/AveeWeb;
+
+    location /assets/ { alias /var/www/html/AveeWeb/public/assets/; }
+    location /uploads/ { alias /var/www/html/AveeWeb/public/uploads/; }
+
+    location / {
+      try_files $uri $uri/ /public/$uri /public/index.php?$args;
+    }
+
+    location ~ \.php$ {
+      include snippets/fastcgi-php.conf;
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      fastcgi_pass unix:/run/php/php8.2-fpm.sock; # adjust to your PHP-FPM socket/version
+    }
+  }
 
 3) Usage
 - Add tracks by dropping files or using the “Add Audio” button.
