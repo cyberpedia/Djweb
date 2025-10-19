@@ -1,0 +1,24 @@
+# Avee Web - Apache routing for XAMPP/LAMP
+# Routes all requests through /public, and maps top-level /assets and /uploads.
+# Ensure mod_rewrite is enabled and AllowOverride All for this directory.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Serve existing files/directories as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Map static paths to public
+  RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+  RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+  # Root to public index
+  RewriteRule ^$ public/index.php [L]
+
+  # Fallback: route everything to /public
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
